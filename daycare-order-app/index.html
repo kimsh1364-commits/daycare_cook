@@ -1035,7 +1035,8 @@ function buildWeekMealPlanCard(week) {
   const rowsHtml = dates.map(dateStr => {
     const { dow } = formatDate(dateStr);
     const data = dayData[dateStr] || {};
-    const menu = (data.menu || []).join(', ');
+    const menuArr = Array.isArray(data.menu) ? data.menu : [];
+    const menu = menuArr.join(', ');
     return `
       <div class="meal-plan-row">
         <div class="meal-plan-dow">${dow}</div>
@@ -1215,7 +1216,7 @@ function applyAnalysisResult(result) {
     if (!validDates.has(day.date)) return;
     applied++;
     const data = getOrInitDay(day.date);
-    data.menu = day.menu || [];
+    data.menu = Array.isArray(day.menu) ? day.menu : (day.menu ? String(day.menu).split(',').map(s => s.trim()) : []);
     (day.ingredients || []).forEach(name => {
       if (!data.extra.some(e => e.name === name)) {
         data.extra.push({ name, unit: UNIT_MAP[name] || '개', qty: 1, checked: true });
