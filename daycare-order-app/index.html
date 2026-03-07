@@ -1404,7 +1404,7 @@ function sendKakao() {
       Kakao.Share.sendDefault({
         objectType: 'text',
         text: preview,
-        link: { mobileWebUrl: viewUrl, webUrl: viewUrl },
+        link: { mobileWebUrl: viewUrl },
         buttonTitle: '📋 발주표 전체 보기',
       });
       closePreviewBtn();
@@ -1470,7 +1470,7 @@ function renderViewMode(data) {
     return Array.from({ length: 5 }, (_, i) => addDays(start, i));
   };
   const formatD = (s) => {
-    const d = new Date(s);
+    const d = new Date(s + 'T00:00:00');
     return { full: `${d.getMonth()+1}월 ${d.getDate()}일`, dow: WEEKDAYS[d.getDay()] };
   };
 
@@ -1483,31 +1483,27 @@ function renderViewMode(data) {
 
   let weeksHtml = '';
   [1, 2].forEach(w => {
-    const fixed = wf[w] || [];
-    const fixedItems = fixed.filter(i => i.checked);
+    const fixedItems = wf[w] || [];
     const dates = getWeekDatesFromSD(w);
     const dayBlocks = dates.map(dateStr => {
-      const dayInfo = dd[dateStr];
-      if (!dayInfo) return '';
-      const extras = (dayInfo.extra || []).filter(i => i.checked);
+      const extras = dd[dateStr] || [];
       if (extras.length === 0) return '';
       const { full, dow } = formatD(dateStr);
       return `<div class="view-card">
         <div class="view-card-header day">📅 ${full} (${dow})</div>
         ${extras.map(i => `<div class="view-item">
-          <span class="view-item-name">${i.name}</span>
-          <span class="view-item-qty">${i.qty}${i.unit}</span>
+          <span class="view-item-name">${i.n}</span>
+          <span class="view-item-qty">${i.q}${i.u}</span>
         </div>`).join('')}
       </div>`;
     }).join('');
 
-    const orderCats = wo[w] || [];
-    const orderItems = orderCats.flatMap(cat => (cat.items || []).filter(i => i.checked));
+    const orderItems = wo[w] || [];
     const orderBlock = orderItems.length > 0 ? `<div class="view-card">
       <div class="view-card-header" style="background:#FFF3E0;color:#E65100">📦 추가주문 (금요일)</div>
       ${orderItems.map(i => `<div class="view-item">
-        <span class="view-item-name">${i.name}</span>
-        <span class="view-item-qty" style="color:#E65100">${i.qty}${i.unit}</span>
+        <span class="view-item-name">${i.n}</span>
+        <span class="view-item-qty" style="color:#E65100">${i.q}${i.u}</span>
       </div>`).join('')}
     </div>` : '';
     if (fixedItems.length === 0 && !orderBlock && !dayBlocks) return;
@@ -1516,8 +1512,8 @@ function renderViewMode(data) {
       ${fixedItems.length > 0 ? `<div class="view-card view-fixed">
         <div class="view-card-header fixed">📌 고정 재료</div>
         ${fixedItems.map(i => `<div class="view-item">
-          <span class="view-item-name">${i.name}</span>
-          <span class="view-item-qty">${i.qty}${i.unit}</span>
+          <span class="view-item-name">${i.n}</span>
+          <span class="view-item-qty">${i.q}${i.u}</span>
         </div>`).join('')}
       </div>` : ''}
       ${orderBlock}
