@@ -1162,7 +1162,7 @@ function resizeImageToBase64(file, maxWidth = 1600) {
         const canvas = document.createElement('canvas');
         canvas.width = width; canvas.height = height;
         canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        resolve({ base64: canvas.toDataURL('image/jpeg', 0.88).split(',')[1], mediaType: 'image/jpeg' });
+        resolve({ base64: canvas.toDataURL('image/jpeg', 0.96).split(',')[1], mediaType: 'image/jpeg' });
       };
       img.onerror = reject;
       img.src = e.target.result;
