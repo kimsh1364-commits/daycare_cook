@@ -56,7 +56,7 @@ module.exports = async (req, res) => {
           temperature: 0.1,
           maxOutputTokens: 8192,
           responseMimeType: 'application/json',
-          thinkingConfig: { thinkingBudget: 0 },
+          thinkingConfig: { thinkingBudget: 1024 },
         },
       }),
     });
