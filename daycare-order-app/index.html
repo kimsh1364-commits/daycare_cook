@@ -130,6 +130,52 @@ body {
 }
 .week-fixed-card.open .week-fixed-body { display: block; }
 
+/* ── 식단 카드 ── */
+.week-meal-card {
+  background: #FFF8E1;
+  border-radius: var(--radius-lg);
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+  border: 1.5px solid #FFE082;
+  overflow: hidden;
+}
+.week-meal-header {
+  display: flex;
+  align-items: center;
+  padding: 13px 16px;
+  cursor: pointer;
+  gap: 8px;
+  user-select: none;
+}
+.week-meal-title { flex: 1; font-size: 14px; font-weight: 800; color: #E65100; }
+.week-meal-arrow { font-size: 11px; color: #E65100; opacity: 0.6; transition: transform 0.2s; }
+.week-meal-card.open .week-meal-arrow { transform: rotate(180deg); }
+.week-meal-body { display: none; padding: 4px 12px 12px; border-top: 1px solid #FFE082; }
+.week-meal-card.open .week-meal-body { display: block; }
+.meal-plan-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 8px 4px;
+  border-bottom: 1px solid #FFE082;
+  gap: 10px;
+}
+.meal-plan-row:last-child { border-bottom: none; }
+.meal-plan-dow { font-size: 14px; font-weight: 800; color: #E65100; width: 20px; flex-shrink: 0; padding-top: 3px; }
+.meal-plan-menu {
+  flex: 1;
+  font-size: 13px;
+  color: var(--dark);
+  line-height: 1.6;
+  min-height: 24px;
+  outline: none;
+  border-radius: 6px;
+  padding: 2px 6px;
+  cursor: text;
+  word-break: keep-all;
+}
+.meal-plan-menu:empty::before { content: attr(placeholder); color: var(--gray3); }
+.meal-plan-menu:focus { background: white; box-shadow: 0 0 0 2px #FFD54F; border-radius: 6px; }
+
 /* ── 날짜 카드 ── */
 .day-card {
   background: var(--white);
@@ -757,12 +803,12 @@ function initKakao() {
 
 // ── 날짜 유틸 ─────────────────────────────────────────
 function addDays(dateStr, n) {
-  const d = new Date(dateStr);
+  const d = new Date(dateStr + 'T00:00:00');
   d.setDate(d.getDate() + n);
-  return d.toISOString().split('T')[0];
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 function formatDate(dateStr) {
-  const d = new Date(dateStr);
+  const d = new Date(dateStr + 'T00:00:00');
   return {
     full: `${d.getMonth()+1}월 ${d.getDate()}일`,
     dow: WEEKDAYS[d.getDay()],
@@ -782,7 +828,7 @@ function initDefaultDates() {
   const diff = dow === 0 ? -6 : 1 - dow;
   const monday = new Date(today);
   monday.setDate(today.getDate() + diff);
-  const w1 = monday.toISOString().split('T')[0];
+  const w1 = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
   const w2 = addDays(w1, 7);
   startDates[1] = w1;
   startDates[2] = w2;
@@ -976,8 +1022,45 @@ function render() {
   }
   main.appendChild(buildWeekFixedCard(currentWeek));
   main.appendChild(buildWeekOrderCard(currentWeek));
+  main.appendChild(buildWeekMealPlanCard(currentWeek));
   dates.forEach(dateStr => main.appendChild(buildDayCard(dateStr)));
   updateBadge();
+}
+
+function buildWeekMealPlanCard(week) {
+  const dates = getWeekDates(week);
+  const card = document.createElement('div');
+  card.className = 'week-meal-card open';
+  card.id = `wm-card-${week}`;
+  const rowsHtml = dates.map(dateStr => {
+    const { dow } = formatDate(dateStr);
+    const data = dayData[dateStr] || {};
+    const menu = (data.menu || []).join(', ');
+    return `
+      <div class="meal-plan-row">
+        <div class="meal-plan-dow">${dow}</div>
+        <div class="meal-plan-menu" id="mpm-${dateStr}" contenteditable="true"
+             placeholder="메뉴 입력..."
+             onblur="saveMealMenu('${dateStr}', this)">${escHtml(menu)}</div>
+      </div>`;
+  }).join('');
+  card.innerHTML = `
+    <div class="week-meal-header" onclick="toggleWeekMealCard(${week})">
+      <div class="week-meal-title">🍱 이번 주 식단</div>
+      <div class="week-meal-arrow">▼</div>
+    </div>
+    <div class="week-meal-body" id="wmb-${week}">${rowsHtml}</div>`;
+  return card;
+}
+function toggleWeekMealCard(week) {
+  document.getElementById(`wm-card-${week}`).classList.toggle('open');
+}
+function saveMealMenu(dateStr, el) {
+  const text = el.innerText.trim();
+  getOrInitDay(dateStr).menu = text ? text.split(',').map(s => s.trim()).filter(Boolean) : [];
+}
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 function buildDayCard(dateStr) {
@@ -1132,6 +1215,7 @@ function applyAnalysisResult(result) {
     if (!validDates.has(day.date)) return;
     applied++;
     const data = getOrInitDay(day.date);
+    data.menu = day.menu || [];
     (day.ingredients || []).forEach(name => {
       if (!data.extra.some(e => e.name === name)) {
         data.extra.push({ name, unit: UNIT_MAP[name] || '개', qty: 1, checked: true });
