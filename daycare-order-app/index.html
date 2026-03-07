@@ -707,7 +707,7 @@ body {
 <script>
 // ── 카카오 설정 ─────────────────────────────────────────
 const KAKAO_APP_KEY = '5cc2dc2a0fd04d0476389c192a24dd3a';
-const APP_URL = 'https://superlative-beignet-e32d35.netlify.app';
+const APP_URL = window.location.origin + window.location.pathname.replace(/\/$/, '');
 
 // ── Gemini 설정 ──────────────────────────────────────────
 const GEMINI_API_KEY = ''; // Netlify 함수로 이동됨 // aistudio.google.com 에서 발급한 키 입력
