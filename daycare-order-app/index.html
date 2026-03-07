@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>발주표</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+:root {
+  --primary: #1B5E3B;
+  --primary-mid: #2D7A55;
+  --primary-light: #4CAF78;
+  --primary-pale: #E8F5EE;
+  --primary-bg: #F2FAF5;
+  --fixed-color: #1565C0;
+  --fixed-pale: #E3F0FF;
+  --accent: #E65100;
+  --accent-pale: #FFF3E0;
+  --kakao: #FEE500;
+  --kakao-text: #3A1D1D;
+  --gray1: #F5F5F5;
+  --gray2: #E0E0E0;
+  --gray3: #9E9E9E;
+  --gray4: #616161;
+  --dark: #1A2E22;
+  --white: #FFFFFF;
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 4px 20px rgba(27,94,59,0.10);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--primary-bg);
+  color: var(--dark);
+  min-height: 100vh;
+  padding-bottom: 100px;
+  font-size: 15px;
+}
+
+/* ── 헤더 ── */
+.header {
+  background: var(--primary);
+  padding: 18px 18px 0;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  box-shadow: 0 3px 20px rgba(0,0,0,0.2);
+}
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.header-title { font-size: 19px; font-weight: 900; color: white; letter-spacing: -0.5px; }
+.header-period {
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.12);
+  padding: 5px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* ── 주차 탭 ── */
+.week-tabs { display: flex; }
+.week-tab {
+  flex: 1;
+  padding: 12px 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.55);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  font-family: inherit;
+  background: none;
+  border-top: none; border-left: none; border-right: none;
+}
+.week-tab.active { color: white; border-bottom-color: #7FFFC4; }
+
+/* ── 메인 ── */
+.main { padding: 14px 14px; }
+
+/* ── 주차 고정재료 카드 ── */
+.week-fixed-card {
+  background: var(--fixed-pale);
+  border-radius: var(--radius-lg);
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+  border: 1.5px solid #BBDEFB;
+  overflow: hidden;
+}
+.week-fixed-header {
+  display: flex;
+  align-items: center;
+  padding: 13px 16px;
+  cursor: pointer;
+  gap: 8px;
+  user-select: none;
+}
+.week-fixed-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--fixed-color);
+}
+.week-fixed-period {
+  font-size: 11px;
+  color: var(--fixed-color);
+  opacity: 0.6;
+  font-weight: 500;
+}
+.week-fixed-arrow {
+  font-size: 11px;
+  color: var(--fixed-color);
+  opacity: 0.6;
+  transition: transform 0.2s;
+}
+.week-fixed-card.open .week-fixed-arrow { transform: rotate(180deg); }
+.week-fixed-body {
+  display: none;
+  padding: 4px 12px 12px;
+  border-top: 1px solid #BBDEFB;
+}
+.week-fixed-card.open .week-fixed-body { display: block; }
+
+/* ── 날짜 카드 ── */
+.day-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.day-card.has-items { box-shadow: var(--shadow); }
+.day-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  cursor: pointer;
+  gap: 10px;
+  user-select: none;
+}
+.day-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--gray2);
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.day-card.has-items .day-dot { background: var(--primary-light); }
+.day-label { flex: 1; }
+.day-date { font-size: 16px; font-weight: 700; color: var(--dark); }
+.day-date .dow { font-size: 13px; font-weight: 500; color: var(--gray3); margin-left: 6px; }
+.day-date .dow.sat { color: #1565C0; }
+.day-date .dow.sun { color: #C62828; }
+.day-count {
+  font-size: 12px;
+  color: var(--primary-mid);
+  font-weight: 700;
+  background: var(--primary-pale);
+  padding: 3px 10px;
+  border-radius: 12px;
+  display: none;
+}
+.day-card.has-items .day-count { display: block; }
+.day-arrow { color: var(--gray3); font-size: 12px; transition: transform 0.2s; }
+.day-card.open .day-arrow { transform: rotate(180deg); }
+
+/* ── 품목 영역 ── */
+.day-body { display: none; padding: 0 12px 12px; }
+.day-card.open .day-body { display: block; }
+
+/* 품목 행 */
+.item-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 6px;
+  border-radius: var(--radius-sm);
+  gap: 10px;
+  transition: background 0.15s;
+  margin-bottom: 2px;
+}
+.item-row.checked { background: var(--primary-pale); }
+.item-row.fixed-item.checked { background: var(--fixed-pale); }
+.item-check {
+  width: 26px; height: 26px;
+  border: 2px solid var(--gray2);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 14px;
+  transition: all 0.15s;
+  color: transparent;
+}
+.item-row.checked .item-check { background: var(--primary-light); border-color: var(--primary-light); color: white; }
+.item-row.fixed-item.checked .item-check { background: var(--fixed-color); border-color: var(--fixed-color); }
+.item-name { flex: 1; font-size: 15px; font-weight: 500; }
+.item-row.fixed-item .item-name { color: var(--fixed-color); font-weight: 600; }
+.item-row:not(.checked) .item-name { color: var(--gray4); }
+.item-row.checked .item-name { color: var(--dark); }
+
+/* 수량 컨트롤 */
+.qty-wrap { display: flex; align-items: center; transition: opacity 0.2s; }
+.item-row:not(.checked) .qty-wrap { opacity: 0.3; pointer-events: none; }
+.qty-btn {
+  width: 30px; height: 30px;
+  background: var(--gray1);
+  border: none;
+  font-size: 18px; font-weight: 700;
+  color: var(--primary);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px 0 0 8px;
+  font-family: inherit;
+  transition: background 0.1s;
+  line-height: 1;
+}
+.qty-btn:last-child { border-radius: 0 8px 8px 0; }
+.qty-btn:active { background: var(--primary-pale); }
+.qty-input {
+  width: 44px; height: 30px;
+  border: 1px solid var(--gray2);
+  border-left: none; border-right: none;
+  text-align: center;
+  font-size: 15px; font-weight: 700;
+  font-family: inherit;
+  color: var(--primary);
+  background: white;
+  outline: none;
+}
+.qty-input::-webkit-inner-spin-button,
+.qty-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.item-unit { font-size: 12px; color: var(--gray3); width: 22px; text-align: left; }
+
+/* 직접 입력 */
+.custom-input-row {
+  display: flex;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1.5px dashed var(--gray2);
+  align-items: center;
+}
+.custom-name-input {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1.5px solid var(--gray2);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--dark);
+  outline: none;
+  background: white;
+  min-width: 0;
+}
+.custom-name-input:focus { border-color: var(--primary-light); }
+.custom-name-input::placeholder { color: var(--gray3); }
+.custom-unit-select {
+  width: 58px;
+  padding: 9px 4px;
+  border: 1.5px solid var(--gray2);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--dark);
+  outline: none;
+  background: white;
+  text-align: center;
+  flex-shrink: 0;
+}
+.custom-add-btn {
+  padding: 9px 14px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.custom-add-btn:active { filter: brightness(0.9); }
+
+/* ── 하단 바 ── */
+.bottom-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: white;
+  padding: 10px 14px 28px;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.10);
+  display: flex;
+  gap: 10px;
+  z-index: 100;
+}
+.btn-reset {
+  background: var(--gray1);
+  color: var(--gray4);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.btn-kakao {
+  flex: 1;
+  background: var(--kakao);
+  color: var(--kakao-text);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 14px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: filter 0.15s;
+}
+.btn-kakao:active { filter: brightness(0.93); }
+.btn-kakao .badge {
+  background: var(--kakao-text);
+  color: var(--kakao);
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+/* ── 모달 ── */
+.modal-bg {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 300;
+  align-items: flex-end;
+  justify-content: center;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: white;
+  border-radius: 24px 24px 0 0;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 0 0 40px;
+  animation: slideUp 0.25s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.modal-handle { width: 40px; height: 4px; background: var(--gray2); border-radius: 2px; margin: 14px auto 0; }
+.modal-header { padding: 16px 20px 10px; display: flex; align-items: center; justify-content: space-between; }
+.modal-title { font-size: 17px; font-weight: 900; color: var(--dark); }
+.modal-close {
+  width: 30px; height: 30px;
+  background: var(--gray1);
+  border: none; border-radius: 50%;
+  font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gray4);
+}
+
+/* 미리보기 */
+.preview-body { padding: 0 18px; }
+.preview-week-title {
+  font-size: 13px; font-weight: 700; color: var(--primary);
+  background: var(--primary-pale); padding: 7px 12px;
+  border-radius: var(--radius-sm); margin: 10px 0 8px;
+}
+.preview-day { margin-bottom: 12px; border: 1px solid var(--gray2); border-radius: var(--radius-sm); overflow: hidden; }
+.preview-day-header { background: var(--gray1); padding: 7px 12px; font-size: 13px; font-weight: 700; color: var(--dark); }
+.preview-item { display: flex; justify-content: space-between; padding: 7px 12px; font-size: 14px; border-top: 1px solid var(--gray2); }
+.preview-item .pname { color: var(--dark); }
+.preview-item .pqty { font-weight: 700; color: var(--primary); }
+.preview-item.fixed-item .pname { color: var(--fixed-color); }
+.preview-item.fixed-item .pqty { color: var(--fixed-color); }
+.preview-empty { text-align: center; padding: 30px; color: var(--gray3); font-size: 14px; }
+.modal-send-btn {
+  margin: 16px 18px 0;
+  width: calc(100% - 36px);
+  background: var(--kakao); color: var(--kakao-text);
+  border: none; border-radius: var(--radius-md);
+  padding: 15px; font-family: inherit; font-size: 16px; font-weight: 900; cursor: pointer;
+}
+.modal-copy-btn {
+  margin: 10px 18px 0;
+  width: calc(100% - 36px);
+  background: var(--primary-pale); color: var(--primary);
+  border: none; border-radius: var(--radius-md);
+  padding: 13px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+
+/* 날짜 모달 */
+.date-modal { padding: 20px 20px 0; }
+.date-modal label { display: block; font-size: 13px; font-weight: 700; color: var(--gray4); margin-bottom: 6px; }
+.date-modal input[type=date] {
+  width: 100%; padding: 12px 14px;
+  border: 1.5px solid var(--gray2); border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 16px; color: var(--dark);
+  outline: none; background: white; margin-bottom: 16px;
+}
+.date-modal input[type=date]:focus { border-color: var(--primary-light); }
+.date-confirm-btn {
+  width: 100%; background: var(--primary); color: white;
+  border: none; border-radius: var(--radius-md);
+  padding: 15px; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 4px;
+}
+
+/* ── 삭제 버튼 ── */
+.item-delete {
+  width: 24px; height: 24px;
+  background: none;
+  border: none;
+  color: var(--gray3);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  transition: all 0.15s;
+  padding: 0;
+}
+.item-delete:active { background: #FFE0E0; color: #C62828; }
+
+/* ── 추가주문 카드 (금요일 주문) ── */
+.week-order-card {
+  background: var(--accent-pale);
+  border-radius: var(--radius-lg);
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+  border: 1.5px solid #FFCC80;
+  overflow: hidden;
+}
+.week-order-header {
+  display: flex; align-items: center;
+  padding: 13px 16px;
+  cursor: pointer; gap: 8px; user-select: none;
+}
+.week-order-title { flex: 1; font-size: 14px; font-weight: 800; color: var(--accent); }
+.week-order-period { font-size: 11px; color: var(--accent); opacity: 0.6; font-weight: 500; }
+.week-order-arrow { font-size: 11px; color: var(--accent); opacity: 0.6; transition: transform 0.2s; }
+.week-order-card.open .week-order-arrow { transform: rotate(180deg); }
+.week-order-body { display: none; padding: 4px 12px 12px; border-top: 1px solid #FFCC80; }
+.week-order-card.open .week-order-body { display: block; }
+.week-order-card .item-row.checked { background: #FFF8E1; }
+.week-order-card .item-row.checked .item-check { background: var(--accent); border-color: var(--accent); color: white; }
+.week-order-card .item-row .item-name { color: var(--accent); font-weight: 600; }
+.week-order-cat-label {
+  font-size: 11px; font-weight: 700; color: var(--accent);
+  padding: 8px 4px 4px; opacity: 0.8; letter-spacing: 0.3px;
+}
+
+/* ── 식단표 분석 카드 ── */
+.analyze-card {
+  background: linear-gradient(135deg, #EDE7F6, #E8F5EE);
+  border-radius: var(--radius-lg);
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+  border: 1.5px solid #B39DDB;
+  overflow: hidden;
+}
+.analyze-header {
+  display: flex; align-items: center;
+  padding: 13px 16px; gap: 8px; cursor: pointer; user-select: none;
+}
+.analyze-title { flex: 1; font-size: 14px; font-weight: 800; color: #4527A0; }
+.analyze-arrow { font-size: 11px; color: #4527A0; opacity: 0.6; transition: transform 0.2s; }
+.analyze-card.open .analyze-arrow { transform: rotate(180deg); }
+.analyze-body { display: none; padding: 12px 16px 16px; border-top: 1px solid #B39DDB; }
+.analyze-card.open .analyze-body { display: block; }
+.analyze-upload-btn {
+  width: 100%;
+  background: #4527A0; color: white;
+  border: none; border-radius: var(--radius-sm);
+  padding: 13px; font-family: inherit; font-size: 14px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.analyze-upload-btn:active { filter: brightness(0.88); }
+.analyze-loading { text-align: center; padding: 14px 0 4px; color: #4527A0; font-size: 13px; font-weight: 500; }
+.analyze-status { font-size: 12px; color: var(--gray4); padding: 8px 2px 0; line-height: 1.5; }
+.analyze-hint { font-size: 11px; color: var(--gray3); margin-top: 8px; line-height: 1.5; }
+
+/* ── 토스트 ── */
+.toast {
+  position: fixed;
+  bottom: 96px; left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--dark); color: white;
+  font-size: 14px; font-weight: 500;
+  padding: 10px 22px; border-radius: 22px;
+  opacity: 0; transition: all 0.2s;
+  pointer-events: none; white-space: nowrap; z-index: 999;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── 뷰 모드 (원장님용 공유 페이지) ── */
+.view-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--primary-bg);
+  z-index: 9999;
+  overflow-y: auto;
+  padding-bottom: 60px;
+}
+.view-header {
+  background: var(--primary);
+  padding: 28px 20px 22px;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 3px 16px rgba(0,0,0,0.2);
+}
+.view-header h1 { font-size: 20px; font-weight: 900; margin-bottom: 4px; }
+.view-period { font-size: 13px; opacity: 0.75; margin-bottom: 14px; }
+.view-print-btn {
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.35);
+  color: white;
+  border-radius: 20px;
+  padding: 8px 18px;
+  font-family: inherit;
+  font-size: 13px; font-weight: 700;
+  cursor: pointer;
+}
+.view-body { padding: 16px; }
+.view-week-block { margin-bottom: 24px; }
+.view-week-title {
+  font-size: 15px; font-weight: 800; color: var(--primary);
+  background: var(--primary-pale);
+  padding: 9px 14px; border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+}
+.view-card {
+  background: white;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow-sm);
+}
+.view-card-header {
+  padding: 10px 14px;
+  font-size: 13px; font-weight: 700;
+}
+.view-card-header.fixed { background: var(--fixed-pale); color: var(--fixed-color); }
+.view-card-header.day { background: var(--gray1); color: var(--dark); }
+.view-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 14px;
+  font-size: 14px;
+  border-top: 1px solid var(--gray1);
+}
+.view-item-name { color: var(--dark); font-weight: 500; }
+.view-item-qty { font-weight: 800; color: var(--primary); }
+.view-fixed .view-item-name { color: var(--fixed-color); }
+.view-fixed .view-item-qty { color: var(--fixed-color); }
+.view-empty { text-align: center; padding: 60px 20px; color: var(--gray3); font-size: 14px; }
+
+@media print {
+  .view-print-btn { display: none; }
+  .view-header { position: static; }
+  body { background: white; }
+}
+</style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<div class="header">
+  <div class="header-top">
+    <div class="header-title">🥬 식단 발주표</div>
+    <div class="header-period" id="period-btn" onclick="openDateModal()">기간 설정 ▾</div>
+  </div>
+  <div class="week-tabs">
+    <button class="week-tab active" onclick="switchWeek(1, this)">1주차</button>
+    <button class="week-tab" onclick="switchWeek(2, this)">2주차</button>
+  </div>
+</div>
+
+<!-- 식단표 자동 분석 카드 -->
+<div style="padding: 14px 14px 0">
+  <div class="analyze-card" id="analyze-card">
+    <div class="analyze-header" onclick="toggleAnalyzeCard()">
+      <div class="analyze-title">🤖 식단표 자동 분석</div>
+      <div class="analyze-arrow">▼</div>
+    </div>
+    <div class="analyze-body">
+      <input type="file" id="menu-image-input" accept="image/*" style="display:none" onchange="handleMenuImage(event)">
+      <button class="analyze-upload-btn" onclick="document.getElementById('menu-image-input').click()">
+        📷 식단표 이미지 업로드
+      </button>
+      <div id="analyze-status"></div>
+      <div class="analyze-hint">시에서 받은 한달 식단표 이미지를 올리면<br>현재 2주 기간의 날짜에 재료를 자동으로 입력해드려요.</div>
+    </div>
+  </div>
+</div>
+
+<div class="main" id="main"></div>
+
+<!-- 하단 바 -->
+<div class="bottom-bar">
+  <button class="btn-reset" onclick="confirmReset()">초기화</button>
+  <button class="btn-kakao" onclick="openPreview()">
+    <span>📋 발주표 확인 · 전송</span>
+    <span class="badge" id="total-badge">0</span>
+  </button>
+</div>
+
+<!-- 미리보기 모달 -->
+<div class="modal-bg" id="preview-modal" onclick="closePreview(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">📋 발주표 미리보기</div>
+      <button class="modal-close" onclick="closePreviewBtn()">✕</button>
+    </div>
+    <div class="preview-body" id="preview-body"></div>
+    <button class="modal-send-btn" onclick="sendKakao()">💬 카카오톡으로 원장님께 전송</button>
+    <button class="modal-copy-btn" onclick="copyText()">📄 텍스트 복사하기</button>
+  </div>
+</div>
+
+<!-- 날짜 설정 모달 -->
+<div class="modal-bg" id="date-modal" onclick="closeDateModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">📅 발주 기간 설정</div>
+      <button class="modal-close" onclick="document.getElementById('date-modal').classList.remove('open')">✕</button>
+    </div>
+    <div class="date-modal">
+      <label>1주차 시작일</label>
+      <input type="date" id="week1-start" onchange="updatePeriod()">
+      <label>2주차 시작일</label>
+      <input type="date" id="week2-start" onchange="updatePeriod()">
+      <button class="date-confirm-btn" onclick="confirmDate()">확인</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" crossorigin="anonymous"></script>
+<script>
+// ── 카카오 설정 ─────────────────────────────────────────
+const KAKAO_APP_KEY = '5cc2dc2a0fd04d0476389c192a24dd3a';
+const APP_URL = 'https://superlative-beignet-e32d35.netlify.app';
+
+// ── Gemini 설정 ──────────────────────────────────────────
+const GEMINI_API_KEY = ''; // Netlify 함수로 이동됨 // aistudio.google.com 에서 발급한 키 입력
+
+// ── 데이터 ──────────────────────────────────────────────
+const FIXED = [
+  { name: "대파",   unit: "단", defaultQty: 1 },
+  { name: "당근",   unit: "개", defaultQty: 3 },
+  { name: "양파",   unit: "개", defaultQty: 5 },
+  { name: "무",     unit: "개", defaultQty: 1 },
+  { name: "양배추", unit: "통", defaultQty: 1 },
+  { name: "간마늘", unit: "kg", defaultQty: 1 },
+];
+const EXTRA_CATEGORIES = [
+  {
+    label: "🥬 채소",
+    items: ["가지","감자","고구마","단호박","배추","브로콜리","상추","숙주","시금치","아욱","애호박","열무","연근","오이","콩나물","파프리카","호박"],
+  },
+  {
+    label: "🥩 고기",
+    items: ["다짐육","닭가슴살","닭고기","돼지고기","소고기","훈제오리"],
+  },
+  {
+    label: "🐟 수산물",
+    items: ["갈치","고등어","김","멸치","미역","북어","새우","오징어"],
+  },
+  {
+    label: "🥚 계란·두부",
+    items: ["계란","달걀","두부","순두부","어묵"],
+  },
+  {
+    label: "🧀 유제품",
+    items: ["우유","치즈","햄"],
+  },
+  {
+    label: "🍚 곡류·면",
+    items: ["당면","모닝빵","스파게티면","쌀","찹쌀"],
+  },
+  {
+    label: "🧂 양념·기름",
+    items: ["간장","고추장","깻잎","들기름","된장","소금","설탕","식용유","참기름","토마토소스"],
+  },
+];
+const FRIDAY_ORDER_CATEGORIES = [
+  {
+    label: "🌾 곡류",
+    items: [
+      { name: "기장쌀",   unit: "kg", defaultQty: 1 },
+      { name: "쌀",       unit: "kg", defaultQty: 1 },
+      { name: "찰차조쌀", unit: "kg", defaultQty: 1 },
+    ],
+  },
+  {
+    label: "🧂 양념",
+    items: [
+      { name: "간장",   unit: "병", defaultQty: 1 },
+      { name: "고추장", unit: "통", defaultQty: 1 },
+      { name: "된장",   unit: "통", defaultQty: 1 },
+      { name: "맛술",   unit: "병", defaultQty: 1 },
+      { name: "설탕",   unit: "봉", defaultQty: 1 },
+      { name: "소금",   unit: "봉", defaultQty: 1 },
+      { name: "식용유", unit: "병", defaultQty: 1 },
+    ],
+  },
+];
+const UNIT_OPTIONS = ["개","kg","g","봉","단","통","병","팩","장","판","마리","포","컵"];
+const UNIT_MAP = {
+  "계란":"판","달걀":"판","우유":"개","치즈":"장","쌀":"kg","찹쌀":"kg",
+  "돼지고기":"kg","닭고기":"kg","소고기":"kg","다짐육":"kg","닭가슴살":"kg","훈제오리":"kg",
+  "새우":"kg","멸치":"kg","미역":"봉","김":"봉","북어":"봉",
+  "참기름":"병","들기름":"병","간장":"병","된장":"통","고추장":"통",
+  "소금":"봉","설탕":"봉","식용유":"병","맛술":"병",
+  "스파게티면":"봉","당면":"봉","모닝빵":"봉",
+};
+
+// ── 상태 ────────────────────────────────────────────────
+let currentWeek = 1;
+let startDates = { 1: null, 2: null };
+// 주차별 고정재료: { 1: [{name,unit,qty,checked,defaultQty}], 2: [...] }
+let weekFixed = {};
+// 날짜별 추가재료만: { "2026-03-03": { extra: [...] } }
+let dayData = {};
+// 주차별 추가주문(금요일): { 1: [{items:[...]}, ...], 2: [...] }
+let weekOrder = {};
+const WEEKDAYS = ["일","월","화","수","목","금","토"];
+
+// ── 카카오 SDK 초기화 ──────────────────────────────────
+function initKakao() {
+  if (KAKAO_APP_KEY === 'YOUR_JS_APP_KEY_HERE') return;
+  if (typeof Kakao === 'undefined') return;
+  if (!Kakao.isInitialized()) Kakao.init(KAKAO_APP_KEY);
+}
+
+// ── 날짜 유틸 ─────────────────────────────────────────
+function addDays(dateStr, n) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + n);
+  return d.toISOString().split('T')[0];
+}
+function formatDate(dateStr) {
+  const d = new Date(dateStr);
+  return {
+    full: `${d.getMonth()+1}월 ${d.getDate()}일`,
+    dow: WEEKDAYS[d.getDay()],
+    dayOfWeek: d.getDay(),
+  };
+}
+function getWeekDates(week) {
+  const start = startDates[week];
+  if (!start) return [];
+  return Array.from({ length: 5 }, (_, i) => addDays(start, i));
+}
+
+// ── 초기 날짜 ─────────────────────────────────────────
+function initDefaultDates() {
+  const today = new Date();
+  const dow = today.getDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diff);
+  const w1 = monday.toISOString().split('T')[0];
+  const w2 = addDays(w1, 7);
+  startDates[1] = w1;
+  startDates[2] = w2;
+  document.getElementById('week1-start').value = w1;
+  document.getElementById('week2-start').value = w2;
+  updatePeriodLabel();
+}
+function updatePeriodLabel() {
+  const s1 = startDates[1], s2 = startDates[2];
+  if (!s1 || !s2) return;
+  const f1 = formatDate(s1);
+  const f2 = formatDate(addDays(s2, 4));
+  document.getElementById('period-btn').textContent = `${f1.full} ~ ${f2.full} ▾`;
+}
+function updatePeriod() {
+  const v1 = document.getElementById('week1-start').value;
+  const v2 = document.getElementById('week2-start').value;
+  if (v1) startDates[1] = v1;
+  if (v2) startDates[2] = v2;
+  updatePeriodLabel();
+}
+function confirmDate() {
+  updatePeriod();
+  document.getElementById('date-modal').classList.remove('open');
+  render();
+  showToast('기간이 설정되었어요');
+}
+
+// ── 고정재료 (주차 단위) ──────────────────────────────
+function getOrInitWeekFixed(week) {
+  if (!weekFixed[week]) {
+    weekFixed[week] = FIXED.map(f => ({ ...f, checked: true, qty: f.defaultQty }));
+  }
+  return weekFixed[week];
+}
+function buildWeekFixedCard(week) {
+  const fixed = getOrInitWeekFixed(week);
+  const dates = getWeekDates(week);
+  const period = dates.length >= 5
+    ? `${formatDate(dates[0]).full} ~ ${formatDate(dates[4]).full}`
+    : '';
+  const card = document.createElement('div');
+  card.className = 'week-fixed-card open';
+  card.id = `wf-card-${week}`;
+  let rowsHtml = fixed.map((item, idx) => buildWeekFixedRow(week, idx, item)).join('');
+  card.innerHTML = `
+    <div class="week-fixed-header" onclick="toggleWeekFixedCard(${week})">
+      <div class="week-fixed-title">📌 고정 재료</div>
+      <div class="week-fixed-period">${period}</div>
+      <div class="week-fixed-arrow">▼</div>
+    </div>
+    <div class="week-fixed-body" id="wfb-${week}">${rowsHtml}</div>
+  `;
+  return card;
+}
+function buildWeekFixedRow(week, idx, item) {
+  return `
+    <div class="item-row fixed-item ${item.checked ? 'checked' : ''}" id="wfrow-${week}-${idx}">
+      <div class="item-check" onclick="toggleWeekFixed(${week},${idx})">✓</div>
+      <div class="item-name">${item.name}</div>
+      <div class="qty-wrap">
+        <button class="qty-btn" onclick="changeWeekFixedQty(${week},${idx},-1)">−</button>
+        <input class="qty-input" type="number" min="0.5" step="0.5"
+               value="${item.qty}"
+               onchange="setWeekFixedQty(${week},${idx},this.value)"
+               onclick="this.select()">
+        <button class="qty-btn" onclick="changeWeekFixedQty(${week},${idx},1)">＋</button>
+      </div>
+      <div class="item-unit">${item.unit}</div>
+    </div>
+  `;
+}
+function toggleWeekFixedCard(week) {
+  document.getElementById(`wf-card-${week}`).classList.toggle('open');
+}
+function toggleWeekFixed(week, idx) {
+  getOrInitWeekFixed(week)[idx].checked ^= true;
+  refreshWeekFixed(week);
+}
+function changeWeekFixedQty(week, idx, delta) {
+  const item = getOrInitWeekFixed(week)[idx];
+  item.qty = Math.max(0.5, parseFloat((item.qty + delta).toFixed(1)));
+  const input = document.querySelector(`#wfrow-${week}-${idx} .qty-input`);
+  if (input) input.value = item.qty;
+}
+function setWeekFixedQty(week, idx, val) {
+  getOrInitWeekFixed(week)[idx].qty = Math.max(0.5, parseFloat(val) || 0.5);
+}
+function refreshWeekFixed(week) {
+  const fixed = getOrInitWeekFixed(week);
+  fixed.forEach((item, idx) => {
+    const row = document.getElementById(`wfrow-${week}-${idx}`);
+    if (!row) return;
+    row.className = `item-row fixed-item ${item.checked ? 'checked' : ''}`;
+  });
+  updateBadge();
+}
+
+// ── 추가주문 (금요일 주문, 주차 단위) ─────────────────
+function getOrInitWeekOrder(week) {
+  if (!weekOrder[week]) {
+    weekOrder[week] = FRIDAY_ORDER_CATEGORIES.map(cat => ({
+      items: cat.items.map(item => ({ ...item, checked: false, qty: item.defaultQty })),
+    }));
+  }
+  return weekOrder[week];
+}
+function buildWeekOrderCard(week) {
+  const order = getOrInitWeekOrder(week);
+  const dates = getWeekDates(week);
+  const fridayStr = dates.length >= 5 ? `금요일: ${formatDate(dates[4]).full}` : '';
+  const card = document.createElement('div');
+  card.className = 'week-order-card';
+  card.id = `wo-card-${week}`;
+  let bodyHtml = '';
+  order.forEach((cat, catIdx) => {
+    const catDef = FRIDAY_ORDER_CATEGORIES[catIdx];
+    bodyHtml += `<div class="week-order-cat-label">${catDef.label}</div>`;
+    cat.items.forEach((item, itemIdx) => { bodyHtml += buildWeekOrderRow(week, catIdx, itemIdx, item); });
+  });
+  card.innerHTML = `
+    <div class="week-order-header" onclick="toggleWeekOrderCard(${week})">
+      <div class="week-order-title">📦 추가주문 (금요일 주문)</div>
+      <div class="week-order-period">${fridayStr}</div>
+      <div class="week-order-arrow">▼</div>
+    </div>
+    <div class="week-order-body" id="wob-${week}">${bodyHtml}</div>
+  `;
+  return card;
+}
+function buildWeekOrderRow(week, catIdx, itemIdx, item) {
+  return `
+    <div class="item-row ${item.checked ? 'checked' : ''}" id="worow-${week}-${catIdx}-${itemIdx}">
+      <div class="item-check" onclick="toggleWeekOrder(${week},${catIdx},${itemIdx})">✓</div>
+      <div class="item-name">${item.name}</div>
+      <div class="qty-wrap">
+        <button class="qty-btn" onclick="changeWeekOrderQty(${week},${catIdx},${itemIdx},-1)">−</button>
+        <input class="qty-input" type="number" min="0.5" step="0.5"
+               value="${item.qty}"
+               onchange="setWeekOrderQty(${week},${catIdx},${itemIdx},this.value)"
+               onclick="this.select()">
+        <button class="qty-btn" onclick="changeWeekOrderQty(${week},${catIdx},${itemIdx},1)">＋</button>
+      </div>
+      <div class="item-unit">${item.unit}</div>
+    </div>
+  `;
+}
+function toggleWeekOrderCard(week) {
+  document.getElementById(`wo-card-${week}`).classList.toggle('open');
+}
+function toggleWeekOrder(week, catIdx, itemIdx) {
+  getOrInitWeekOrder(week)[catIdx].items[itemIdx].checked ^= true;
+  refreshWeekOrder(week);
+}
+function changeWeekOrderQty(week, catIdx, itemIdx, delta) {
+  const item = getOrInitWeekOrder(week)[catIdx].items[itemIdx];
+  item.qty = Math.max(0.5, parseFloat((item.qty + delta).toFixed(1)));
+  const input = document.querySelector(`#worow-${week}-${catIdx}-${itemIdx} .qty-input`);
+  if (input) input.value = item.qty;
+}
+function setWeekOrderQty(week, catIdx, itemIdx, val) {
+  getOrInitWeekOrder(week)[catIdx].items[itemIdx].qty = Math.max(0.5, parseFloat(val) || 0.5);
+}
+function refreshWeekOrder(week) {
+  const order = getOrInitWeekOrder(week);
+  order.forEach((cat, catIdx) => {
+    cat.items.forEach((item, itemIdx) => {
+      const row = document.getElementById(`worow-${week}-${catIdx}-${itemIdx}`);
+      if (!row) return;
+      row.className = `item-row ${item.checked ? 'checked' : ''}`;
+    });
+  });
+  updateBadge();
+}
+
+// ── 추가재료 (날짜 단위) ──────────────────────────────
+function getOrInitDay(dateStr) {
+  if (!dayData[dateStr]) dayData[dateStr] = { extra: [] };
+  return dayData[dateStr];
+}
+
+// ── 렌더 ──────────────────────────────────────────────
+function render() {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  const dates = getWeekDates(currentWeek);
+  if (dates.length === 0) {
+    main.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--gray3);font-size:14px">
+      상단 <b>기간 설정</b>을 눌러 날짜를 설정해주세요</div>`;
+    updateBadge(); return;
+  }
+  main.appendChild(buildWeekFixedCard(currentWeek));
+  main.appendChild(buildWeekOrderCard(currentWeek));
+  dates.forEach(dateStr => main.appendChild(buildDayCard(dateStr)));
+  updateBadge();
+}
+
+function buildDayCard(dateStr) {
+  const data = getOrInitDay(dateStr);
+  const { full, dow, dayOfWeek } = formatDate(dateStr);
+  const extraCount = data.extra.filter(i => i.checked).length;
+  const card = document.createElement('div');
+  card.className = `day-card ${extraCount > 0 ? 'has-items' : ''}`;
+  card.id = `card-${dateStr}`;
+  const dowClass = dayOfWeek === 6 ? 'sat' : dayOfWeek === 0 ? 'sun' : '';
+  card.innerHTML = `
+    <div class="day-header" onclick="toggleCard('${dateStr}')">
+      <div class="day-dot"></div>
+      <div class="day-label">
+        <div class="day-date">${full} <span class="dow ${dowClass}">(${dow})</span></div>
+      </div>
+      <div class="day-count">${extraCount}개</div>
+      <div class="day-arrow">▼</div>
+    </div>
+    <div class="day-body" id="body-${dateStr}">${buildDayBody(dateStr, data)}</div>
+  `;
+  return card;
+}
+
+function buildDayBody(dateStr, data) {
+  let html = '';
+  if (data.extra.length > 0) {
+    data.extra.forEach((item, idx) => { html += buildExtraRow(dateStr, idx, item); });
+  } else {
+    html += `<div style="text-align:center;padding:10px 0 6px;color:var(--gray3);font-size:13px">재료 없음 (식단표를 분석하거나 직접 입력하세요)</div>`;
+  }
+  const unitOpts = UNIT_OPTIONS.map(u => `<option value="${u}">${u}</option>`).join('');
+  html += `
+    <div class="custom-input-row" style="margin-top:8px;padding-top:10px;border-top:1.5px dashed var(--gray2)">
+      <input class="custom-name-input" type="text" id="cname-${dateStr}"
+             placeholder="재료 직접 입력..."
+             onkeydown="if(event.key==='Enter')addCustomItem('${dateStr}')">
+      <select class="custom-unit-select" id="cunit-${dateStr}">${unitOpts}</select>
+      <button class="custom-add-btn" onclick="addCustomItem('${dateStr}')">추가</button>
+    </div>
+  `;
+  return html;
+}
+
+function buildExtraRow(dateStr, idx, item) {
+  return `
+    <div class="item-row ${item.checked ? 'checked' : ''}" id="row-${dateStr}-extra-${idx}">
+      <div class="item-check" onclick="toggleItem('${dateStr}',${idx})">✓</div>
+      <div class="item-name">${item.name}</div>
+      <div class="qty-wrap">
+        <button class="qty-btn" onclick="changeQty('${dateStr}',${idx},-1)">−</button>
+        <input class="qty-input" type="number" min="0.5" step="0.5"
+               value="${item.qty}"
+               onchange="setQty('${dateStr}',${idx},this.value)"
+               onclick="this.select()">
+        <button class="qty-btn" onclick="changeQty('${dateStr}',${idx},1)">＋</button>
+      </div>
+      <div class="item-unit">${item.unit}</div>
+      <button class="item-delete" onclick="deleteExtraItem('${dateStr}',${idx})" title="삭제">✕</button>
+    </div>
+  `;
+}
+function deleteExtraItem(dateStr, idx) {
+  getOrInitDay(dateStr).extra.splice(idx, 1);
+  refreshDayCard(dateStr);
+}
+
+// ── 인터랙션 ───────────────────────────────────────────
+function toggleCard(dateStr) {
+  document.getElementById(`card-${dateStr}`).classList.toggle('open');
+}
+function toggleItem(dateStr, idx) {
+  const data = getOrInitDay(dateStr);
+  data.extra[idx].checked ^= true;
+  refreshDayCard(dateStr);
+}
+function changeQty(dateStr, idx, delta) {
+  const item = getOrInitDay(dateStr).extra[idx];
+  item.qty = Math.max(0.5, parseFloat((item.qty + delta).toFixed(1)));
+  const input = document.querySelector(`#row-${dateStr}-extra-${idx} .qty-input`);
+  if (input) input.value = item.qty;
+}
+function setQty(dateStr, idx, val) {
+  getOrInitDay(dateStr).extra[idx].qty = Math.max(0.5, parseFloat(val) || 0.5);
+}
+// ── 식단표 이미지 분석 ─────────────────────────────────
+function toggleAnalyzeCard() {
+  document.getElementById('analyze-card').classList.toggle('open');
+}
+
+function resizeImageToBase64(file, maxWidth = 1600) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxWidth) { height = Math.round(height * maxWidth / width); width = maxWidth; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve({ base64: canvas.toDataURL('image/jpeg', 0.88).split(',')[1], mediaType: 'image/jpeg' });
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleMenuImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('analyze-status');
+  statusEl.innerHTML = '<div class="analyze-loading">🔍 식단표 분석 중... 잠시만 기다려주세요</div>';
+  try {
+    const { base64, mediaType } = await resizeImageToBase64(file);
+    const s1 = startDates[1];
+    if (!s1) { showToast('먼저 기간 설정을 해주세요'); statusEl.innerHTML = ''; return; }
+    const d = new Date(s1);
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    const mm = String(month).padStart(2, '0');
+    const prompt = `이 이미지는 ${year}년 ${month}월 어린이집/유치원 식단표입니다.\n각 날짜(평일만, 주말·공휴일 제외)의 메뉴를 분석하고, 각 메뉴에 필요한 주요 식재료를 추출해주세요.\n\n규칙:\n- 날짜 형식: "${year}-${mm}-DD"\n- 식재료: 채소, 고기, 생선, 해산물, 두부류, 버섯류 등 주요 재료만 포함\n- 된장·고추장·간장 등 특수 양념 포함, 소금·설탕·기름·후춧가루 등 기본 양념 제외\n- 같은 날 중복 재료는 한 번만\n- 재료명은 단순하게 (예: "돼지고기", "감자", "표고버섯")\n\nJSON 형식으로만 응답 (다른 텍스트 없이):\n{"days":[{"date":"${year}-${mm}-01","menu":["메뉴1"],"ingredients":["재료1","재료2"]}]}`;
+
+        const response = await fetch('/api/analyze-menu', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: base64, mediaType, year, month }),
+    });
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error('API 오류 ' + response.status + ': ' + (errBody?.error || ''));
+    }
+    const result = await response.json();
+    const applied = applyAnalysisResult(result);
+    statusEl.innerHTML = `<div class="analyze-status">✅ ${result.days.length}일 분석 완료 · ${applied}일 적용됨</div>`;
+    showToast('식단 분석 완료! 날짜를 열어 재료를 확인하세요');
+  } catch (e) {
+    statusEl.innerHTML = `<div class="analyze-status" style="color:#C62828">❌ 분석 실패: ${e.message}</div>`;
+    console.error(e);
+  }
+  event.target.value = '';
+}
+
+function applyAnalysisResult(result) {
+  if (!result.days) return 0;
+  const validDates = new Set([...getWeekDates(1), ...getWeekDates(2)]);
+  let applied = 0;
+  result.days.forEach(day => {
+    if (!validDates.has(day.date)) return;
+    applied++;
+    const data = getOrInitDay(day.date);
+    (day.ingredients || []).forEach(name => {
+      if (!data.extra.some(e => e.name === name)) {
+        data.extra.push({ name, unit: UNIT_MAP[name] || '개', qty: 1, checked: true });
+      }
+    });
+  });
+  render();
+  return applied;
+}
+function addCustomItem(dateStr) {
+  const nameEl = document.getElementById(`cname-${dateStr}`);
+  const unitEl = document.getElementById(`cunit-${dateStr}`);
+  const name = nameEl.value.trim();
+  if (!name) { showToast('재료 이름을 입력해주세요'); nameEl.focus(); return; }
+  const data = getOrInitDay(dateStr);
+  if (data.extra.some(e => e.name === name)) { showToast('이미 추가된 재료예요'); return; }
+  data.extra.push({ name, unit: unitEl.value, qty: 1, checked: true });
+  nameEl.value = '';
+  refreshDayCard(dateStr);
+  showToast(`'${name}' 추가됐어요`);
+}
+
+function refreshDayCard(dateStr) {
+  const data = getOrInitDay(dateStr);
+  const card = document.getElementById(`card-${dateStr}`);
+  const wasOpen = card.classList.contains('open');
+  const extraCount = data.extra.filter(i => i.checked).length;
+  card.className = `day-card ${extraCount > 0 ? 'has-items' : ''} ${wasOpen ? 'open' : ''}`;
+  const countEl = card.querySelector('.day-count');
+  if (countEl) countEl.textContent = `${extraCount}개`;
+  const body = document.getElementById(`body-${dateStr}`);
+  if (body) body.innerHTML = buildDayBody(dateStr, data);
+  updateBadge();
+}
+
+function updateBadge() {
+  let total = 0;
+  [1, 2].forEach(w => {
+    const fixed = weekFixed[w];
+    if (fixed) total += fixed.filter(i => i.checked).length;
+    const order = weekOrder[w];
+    if (order) order.forEach(cat => { total += cat.items.filter(i => i.checked).length; });
+    getWeekDates(w).forEach(d => {
+      const data = dayData[d];
+      if (data) total += data.extra.filter(i => i.checked).length;
+    });
+  });
+  document.getElementById('total-badge').textContent = total;
+}
+
+// ── 미리보기 ───────────────────────────────────────────
+function openPreview() {
+  const body = document.getElementById('preview-body');
+  body.innerHTML = '';
+  let hasAny = false;
+  [1, 2].forEach(w => {
+    let weekHtml = '';
+    const fixed = weekFixed[w];
+    const fixedItems = fixed ? fixed.filter(i => i.checked) : [];
+    if (fixedItems.length > 0) {
+      hasAny = true;
+      weekHtml += `<div class="preview-day">
+        <div class="preview-day-header">📌 고정 재료</div>
+        ${fixedItems.map(i => `<div class="preview-item fixed-item">
+          <span class="pname">${i.name}</span>
+          <span class="pqty">${i.qty}${i.unit}</span>
+        </div>`).join('')}
+      </div>`;
+    }
+    const order = weekOrder[w];
+    if (order) {
+      const orderItems = order.flatMap(cat => cat.items.filter(i => i.checked));
+      if (orderItems.length > 0) {
+        hasAny = true;
+        weekHtml += `<div class="preview-day">
+          <div class="preview-day-header">📦 추가주문 (금요일)</div>
+          ${orderItems.map(i => `<div class="preview-item">
+            <span class="pname">${i.name}</span>
+            <span class="pqty">${i.qty}${i.unit}</span>
+          </div>`).join('')}
+        </div>`;
+      }
+    }
+    getWeekDates(w).forEach(dateStr => {
+      const data = dayData[dateStr];
+      if (!data) return;
+      const items = data.extra.filter(i => i.checked);
+      if (items.length === 0) return;
+      hasAny = true;
+      const { full, dow } = formatDate(dateStr);
+      weekHtml += `<div class="preview-day">
+        <div class="preview-day-header">📅 ${full} (${dow})</div>
+        ${items.map(i => `<div class="preview-item">
+          <span class="pname">${i.name}</span>
+          <span class="pqty">${i.qty}${i.unit}</span>
+        </div>`).join('')}
+      </div>`;
+    });
+    if (weekHtml) body.innerHTML += `<div class="preview-week-title">${w}주차</div>${weekHtml}`;
+  });
+  if (!hasAny) {
+    body.innerHTML = `<div class="preview-empty">아직 선택된 품목이 없어요.<br>날짜를 열어서 재료를 확인해주세요.</div>`;
+  }
+  document.getElementById('preview-modal').classList.add('open');
+}
+function closePreview(e) {
+  if (e.target.id === 'preview-modal') document.getElementById('preview-modal').classList.remove('open');
+}
+function closePreviewBtn() {
+  document.getElementById('preview-modal').classList.remove('open');
+}
+
+// ── 텍스트 생성 ────────────────────────────────────────
+function buildText() {
+  const s1 = startDates[1];
+  if (!s1) return '';
+  const end = addDays(startDates[2] || addDays(s1, 7), 4);
+  let text = `[식단 발주표]\n${formatDate(s1).full} ~ ${formatDate(end).full}\n${'─'.repeat(20)}\n`;
+  [1, 2].forEach(w => {
+    const fixed = weekFixed[w];
+    const fixedItems = fixed ? fixed.filter(i => i.checked) : [];
+    const dates = getWeekDates(w);
+    const order = weekOrder[w];
+    const orderItems = order ? order.flatMap(cat => cat.items.filter(i => i.checked)) : [];
+    const hasExtra = dates.some(d => { const dd = dayData[d]; return dd && dd.extra.some(i => i.checked); });
+    if (fixedItems.length === 0 && orderItems.length === 0 && !hasExtra) return;
+    text += `\n▶ ${w}주차\n`;
+    if (fixedItems.length > 0) {
+      text += `\n📌 고정 재료\n`;
+      fixedItems.forEach(i => { text += `  · ${i.name} ${i.qty}${i.unit}\n`; });
+    }
+    if (orderItems.length > 0) {
+      text += `\n📦 추가주문 (금요일)\n`;
+      orderItems.forEach(i => { text += `  · ${i.name} ${i.qty}${i.unit}\n`; });
+    }
+    dates.forEach(dateStr => {
+      const data = dayData[dateStr];
+      if (!data) return;
+      const extras = data.extra.filter(i => i.checked);
+      if (extras.length === 0) return;
+      const { full, dow } = formatDate(dateStr);
+      text += `\n📅 ${full}(${dow})\n`;
+      extras.forEach(i => { text += `  · ${i.name} ${i.qty}${i.unit}\n`; });
+    });
+  });
+  text += `\n${'─'.repeat(20)}\n이상입니다.`;
+  return text;
+}
+
+// ── 공유 URL (원장님용 뷰) ─────────────────────────────
+// 체크된 항목만, 단축 키(n/u/q)로 인코딩해 URL 크기를 최소화 (모바일 10K 제한 대응)
+function buildViewUrl() {
+  const cmpr = (items) => (items || []).filter(i => i.checked).map(i => ({n:i.name, u:i.unit, q:i.qty}));
+  const vwf = {}, vwo = {}, vdd = {};
+  [1, 2].forEach(w => {
+    const f = cmpr(weekFixed[w]);
+    if (f.length) vwf[w] = f;
+    const o = (weekOrder[w] || []).flatMap(cat => cmpr(cat.items));
+    if (o.length) vwo[w] = o;
+  });
+  Object.entries(dayData).forEach(([date, data]) => {
+    const e = cmpr(data.extra);
+    if (e.length) vdd[date] = e;
+  });
+  const payload = { sd: startDates, wf: vwf, wo: vwo, dd: vdd };
+  return `${APP_URL}?v=${btoa(unescape(encodeURIComponent(JSON.stringify(payload))))}`;
+}
+
+// ── 카카오톡 전송 ──────────────────────────────────────
+function sendKakao() {
+  const hasContent = [1,2].some(w => {
+    const f = weekFixed[w];
+    if (f && f.some(i => i.checked)) return true;
+    const o = weekOrder[w];
+    if (o && o.some(cat => cat.items.some(i => i.checked))) return true;
+    return getWeekDates(w).some(d => { const dd = dayData[d]; return dd && dd.extra.some(i => i.checked); });
+  });
+  if (!hasContent) { showToast('입력된 품목이 없어요'); return; }
+
+  if (typeof Kakao !== 'undefined' && Kakao.isInitialized()) {
+    const text = buildText();
+    const preview = text.length > 200 ? text.substring(0, 197) + '...' : text;
+    const viewUrl = buildViewUrl();
+    try {
+      Kakao.Share.sendDefault({
+        objectType: 'text',
+        text: preview,
+        link: { mobileWebUrl: viewUrl, webUrl: viewUrl },
+        buttonTitle: '📋 발주표 전체 보기',
+      });
+      closePreviewBtn();
+    } catch(e) {
+      console.warn('Kakao Share 실패, 폴백으로 전환:', e);
+      fallbackSend();
+    }
+  } else {
+    fallbackSend();
+  }
+}
+
+function fallbackSend() {
+  const text = buildText();
+  const copy = () => {
+    showToast('📋 복사됨! 카카오톡 열어서 붙여넣기하세요');
+    closePreviewBtn();
+    if (/iPhone|iPad|Android/i.test(navigator.userAgent))
+      setTimeout(() => { window.location.href = 'kakaotalk://'; }, 800);
+  };
+  navigator.clipboard.writeText(text).then(copy).catch(() => { fallbackCopy(text); copy(); });
+}
+
+function copyText() {
+  const text = buildText();
+  navigator.clipboard.writeText(text)
+    .then(() => showToast('📋 복사 완료! 카톡에 붙여넣기하세요'))
+    .catch(() => fallbackCopy(text));
+}
+function fallbackCopy(text) {
+  const el = document.createElement('textarea');
+  el.value = text;
+  el.style.cssText = 'position:fixed;opacity:0';
+  document.body.appendChild(el);
+  el.focus(); el.select();
+  document.execCommand('copy');
+  document.body.removeChild(el);
+  showToast('📋 복사 완료!');
+}
+
+// ── 뷰 모드 (원장님이 링크 열었을 때) ────────────────────
+function checkViewMode() {
+  const param = new URLSearchParams(window.location.search).get('v');
+  if (!param) return false;
+  try {
+    const data = JSON.parse(decodeURIComponent(escape(atob(param))));
+    renderViewMode(data);
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+function renderViewMode(data) {
+  const sd = data.sd || {};
+  const wf = data.wf || {};
+  const wo = data.wo || {};
+  const dd = data.dd || {};
+
+  const getWeekDatesFromSD = (w) => {
+    const start = sd[w];
+    if (!start) return [];
+    return Array.from({ length: 5 }, (_, i) => addDays(start, i));
+  };
+  const formatD = (s) => {
+    const d = new Date(s);
+    return { full: `${d.getMonth()+1}월 ${d.getDate()}일`, dow: WEEKDAYS[d.getDay()] };
+  };
+
+  let periodStr = '';
+  if (sd[1] && sd[2]) {
+    const f1 = formatD(sd[1]);
+    const f2 = formatD(addDays(sd[2], 4));
+    periodStr = `${f1.full} ~ ${f2.full}`;
+  }
+
+  let weeksHtml = '';
+  [1, 2].forEach(w => {
+    const fixed = wf[w] || [];
+    const fixedItems = fixed.filter(i => i.checked);
+    const dates = getWeekDatesFromSD(w);
+    const dayBlocks = dates.map(dateStr => {
+      const dayInfo = dd[dateStr];
+      if (!dayInfo) return '';
+      const extras = (dayInfo.extra || []).filter(i => i.checked);
+      if (extras.length === 0) return '';
+      const { full, dow } = formatD(dateStr);
+      return `<div class="view-card">
+        <div class="view-card-header day">📅 ${full} (${dow})</div>
+        ${extras.map(i => `<div class="view-item">
+          <span class="view-item-name">${i.name}</span>
+          <span class="view-item-qty">${i.qty}${i.unit}</span>
+        </div>`).join('')}
+      </div>`;
+    }).join('');
+
+    const orderCats = wo[w] || [];
+    const orderItems = orderCats.flatMap(cat => (cat.items || []).filter(i => i.checked));
+    const orderBlock = orderItems.length > 0 ? `<div class="view-card">
+      <div class="view-card-header" style="background:#FFF3E0;color:#E65100">📦 추가주문 (금요일)</div>
+      ${orderItems.map(i => `<div class="view-item">
+        <span class="view-item-name">${i.name}</span>
+        <span class="view-item-qty" style="color:#E65100">${i.qty}${i.unit}</span>
+      </div>`).join('')}
+    </div>` : '';
+    if (fixedItems.length === 0 && !orderBlock && !dayBlocks) return;
+    weeksHtml += `<div class="view-week-block">
+      <div class="view-week-title">${w}주차</div>
+      ${fixedItems.length > 0 ? `<div class="view-card view-fixed">
+        <div class="view-card-header fixed">📌 고정 재료</div>
+        ${fixedItems.map(i => `<div class="view-item">
+          <span class="view-item-name">${i.name}</span>
+          <span class="view-item-qty">${i.qty}${i.unit}</span>
+        </div>`).join('')}
+      </div>` : ''}
+      ${orderBlock}
+      ${dayBlocks}
+    </div>`;
+  });
+
+  if (!weeksHtml) weeksHtml = `<div class="view-empty">발주 내용이 없습니다.</div>`;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'view-overlay';
+  overlay.innerHTML = `
+    <div class="view-header">
+      <h1>📋 식단 발주표</h1>
+      <div class="view-period">${periodStr}</div>
+      <button class="view-print-btn" onclick="window.print()">🖨️ 인쇄하기</button>
+    </div>
+    <div class="view-body">${weeksHtml}</div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+// ── 날짜 모달 ──────────────────────────────────────────
+function openDateModal() { document.getElementById('date-modal').classList.add('open'); }
+function closeDateModal(e) {
+  if (e.target.id === 'date-modal') document.getElementById('date-modal').classList.remove('open');
+}
+
+// ── 탭 전환 ───────────────────────────────────────────
+function switchWeek(week, btn) {
+  currentWeek = week;
+  document.querySelectorAll('.week-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+// ── 초기화 ────────────────────────────────────────────
+function confirmReset() {
+  if (!confirm('이번 주차 입력 내용을 초기화할까요?')) return;
+  delete weekFixed[currentWeek];
+  delete weekOrder[currentWeek];
+  getWeekDates(currentWeek).forEach(d => { delete dayData[d]; });
+  render();
+  showToast('초기화 완료');
+}
+
+// ── 토스트 ────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── 시작 ──────────────────────────────────────────────
+if (!checkViewMode()) {
+  initDefaultDates();
+  render();
+  initKakao();
+}
+</script>
+</body>
+</html>
