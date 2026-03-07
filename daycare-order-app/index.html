@@ -1369,7 +1369,7 @@ function buildText() {
 // ── 공유 URL (원장님용 뷰) ─────────────────────────────
 // 체크된 항목만, 단축 키(n/u/q)로 인코딩해 URL 크기를 최소화 (모바일 10K 제한 대응)
 function buildViewUrl() {
-  const cmpr = (items) => (items || []).filter(i => i.checked).map(i => ({n:i.name, u:i.unit, q:i.qty}));
+  const cmpr = (items) => (items || []).filter(i => i.checked).map(i => `${i.name}|${i.unit}|${i.qty}`);
   const vwf = {}, vwo = {}, vdd = {};
   [1, 2].forEach(w => {
     const f = cmpr(weekFixed[w]);
@@ -1481,12 +1481,14 @@ function renderViewMode(data) {
     periodStr = `${f1.full} ~ ${f2.full}`;
   }
 
+  const pi = (s) => { const p = typeof s === 'string' ? s.split('|') : [s.n||s.name, s.u||s.unit, s.q||s.qty]; return {n: p[0], u: p[1], q: p[2]}; };
+
   let weeksHtml = '';
   [1, 2].forEach(w => {
-    const fixedItems = wf[w] || [];
+    const fixedItems = (wf[w] || []).map(pi);
     const dates = getWeekDatesFromSD(w);
     const dayBlocks = dates.map(dateStr => {
-      const extras = dd[dateStr] || [];
+      const extras = (dd[dateStr] || []).map(pi);
       if (extras.length === 0) return '';
       const { full, dow } = formatD(dateStr);
       return `<div class="view-card">
@@ -1498,7 +1500,7 @@ function renderViewMode(data) {
       </div>`;
     }).join('');
 
-    const orderItems = wo[w] || [];
+    const orderItems = (wo[w] || []).map(pi);
     const orderBlock = orderItems.length > 0 ? `<div class="view-card">
       <div class="view-card-header" style="background:#FFF3E0;color:#E65100">📦 추가주문 (금요일)</div>
       ${orderItems.map(i => `<div class="view-item">
