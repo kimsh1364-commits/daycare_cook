@@ -1270,15 +1270,13 @@ function buildText() {
 }
 
 // ── 공유 URL (원장님용 뷰) ─────────────────────────────
-// 체크된 항목만, 단축 키(n/u/q)로 인코딩해 URL 크기를 최소화 (모바일 10K 제한 대응)
-function buildViewUrl() {
+function buildViewPayload() {
   const cmpr = (items) => (items || []).filter(i => i.checked).map(i => `${i.name}|${i.unit}|${i.qty}`);
   const vwf = {}, vdd = {};
   [1, 2].forEach(w => {
     const f = cmpr(weekFixed[w]);
     if (f.length) vwf[w] = f;
   });
-  // 현재 2주치 날짜만 포함 (전체 dayData 사용 시 10KB 초과 가능)
   const currentDates = [...getWeekDates(1), ...getWeekDates(2)];
   currentDates.forEach(date => {
     const data = dayData[date];
@@ -1287,13 +1285,17 @@ function buildViewUrl() {
     const m = Array.isArray(data.menu) ? data.menu.filter(s => s.trim()) : [];
     if (e.length || m.length) vdd[date] = { e, m };
   });
-  const payload = { sd: startDates, wf: vwf, dd: vdd };
+  return { sd: startDates, wf: vwf, dd: vdd };
+}
+
+function buildViewUrl() {
+  const payload = buildViewPayload();
   const json = JSON.stringify(payload);
   return `${APP_URL}?v=${btoa(unescape(encodeURIComponent(json)))}`;
 }
 
 // ── 카카오톡 전송 ──────────────────────────────────────
-function sendKakao() {
+async function sendKakao() {
   const hasContent = [1,2].some(w => {
     const f = weekFixed[w];
     if (f && f.some(i => i.checked)) return true;
@@ -1309,10 +1311,18 @@ function sendKakao() {
     const text = buildText();
     const preview = text.length > 200 ? text.substring(0, 197) + '...' : text;
     try {
+      const payload = buildViewPayload();
+      const res = await fetch('/api/save-share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload }),
+      });
+      const { id } = await res.json();
+      const shareUrl = `${APP_URL}?share=${id}`;
       Kakao.Share.sendDefault({
         objectType: 'text',
         text: preview,
-        link: { mobileWebUrl: APP_URL, webUrl: APP_URL },
+        link: { mobileWebUrl: shareUrl, webUrl: shareUrl },
         buttonTitle: '📋 발주표 전체 보기',
       });
       closePreviewBtn();
@@ -1354,16 +1364,36 @@ function fallbackCopy(text) {
 }
 
 // ── 뷰 모드 (원장님이 링크 열었을 때) ────────────────────
-function checkViewMode() {
-  const param = new URLSearchParams(window.location.search).get('v');
-  if (!param) return false;
-  try {
-    const data = JSON.parse(decodeURIComponent(escape(atob(param))));
-    renderViewMode(data);
-    return true;
-  } catch(e) {
-    return false;
+async function checkViewMode() {
+  const params = new URLSearchParams(window.location.search);
+
+  // 서버 저장 방식: ?share=<id>
+  const shareId = params.get('share');
+  if (shareId) {
+    try {
+      const res = await fetch(`/api/get-share?id=${encodeURIComponent(shareId)}`);
+      if (!res.ok) return false;
+      const data = await res.json();
+      renderViewMode(data);
+      return true;
+    } catch(e) {
+      return false;
+    }
   }
+
+  // 레거시: ?v=<base64>
+  const vParam = params.get('v');
+  if (vParam) {
+    try {
+      const data = JSON.parse(decodeURIComponent(escape(atob(vParam))));
+      renderViewMode(data);
+      return true;
+    } catch(e) {
+      return false;
+    }
+  }
+
+  return false;
 }
 
 function renderViewMode(data) {
@@ -1472,11 +1502,12 @@ function showToast(msg) {
 }
 
 // ── 시작 ──────────────────────────────────────────────
-if (!checkViewMode()) {
+(async () => {
+  if (await checkViewMode()) return;
   initDefaultDates();
   render();
   initKakao();
-}
+})();
 </script>
 </body>
 </html>
