@@ -694,7 +694,7 @@ body {
       <button class="modal-close" onclick="closePreviewBtn()">✕</button>
     </div>
     <div class="preview-body" id="preview-body"></div>
-    <button class="modal-send-btn" onclick="sendKakao()">💬 카카오톡으로 원장님께 전송</button>
+    <button id="modal-send-btn" class="modal-send-btn" onclick="sendKakao()">💬 카카오톡으로 원장님께 전송</button>
     <button class="modal-copy-btn" onclick="copyText()">📄 텍스트 복사하기</button>
   </div>
 </div>
@@ -1224,17 +1224,26 @@ async function openPreview() {
   }
   document.getElementById('preview-modal').classList.add('open');
 
-  // 백그라운드에서 공유 URL 미리 준비
+  // 전송 버튼 비활성화 후 공유 URL 준비
+  const sendBtn = document.getElementById('modal-send-btn');
+  sendBtn.disabled = true;
+  sendBtn.textContent = '⏳ 준비 중...';
+  _pendingShareUrl = null;
   try {
     const payload = buildViewPayload();
-    fetch('/api/save-share', {
+    const res = await fetch('/api/save-share', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ payload }),
-    }).then(r => r.json()).then(({ id }) => {
-      _pendingShareUrl = `${APP_URL}?share=${id}`;
-    }).catch(() => {});
-  } catch(e) {}
+    });
+    const { id } = await res.json();
+    _pendingShareUrl = `${APP_URL}?share=${id}`;
+  } catch(e) {
+    _pendingShareUrl = buildViewUrl(); // 서버 실패 시 base64 URL 폴백
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.textContent = '💬 카카오톡으로 원장님께 전송';
+  }
 }
 function closePreview(e) {
   if (e.target.id === 'preview-modal') document.getElementById('preview-modal').classList.remove('open');
