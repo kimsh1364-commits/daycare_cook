@@ -483,33 +483,34 @@ body {
 }
 .item-delete:active { background: #FFE0E0; color: #C62828; }
 
-/* ── 추가주문 카드 (금요일 주문) ── */
-.week-order-card {
-  background: var(--accent-pale);
+/* ── 식재료 현황 카드 ── */
+.week-ingr-card {
+  background: #F3E5F5;
   border-radius: var(--radius-lg);
   margin-bottom: 14px;
   box-shadow: var(--shadow-sm);
-  border: 1.5px solid #FFCC80;
+  border: 1.5px solid #CE93D8;
   overflow: hidden;
 }
-.week-order-header {
+.week-ingr-header {
   display: flex; align-items: center;
-  padding: 13px 16px;
-  cursor: pointer; gap: 8px; user-select: none;
+  padding: 13px 16px; cursor: pointer; gap: 8px; user-select: none;
 }
-.week-order-title { flex: 1; font-size: 14px; font-weight: 800; color: var(--accent); }
-.week-order-period { font-size: 11px; color: var(--accent); opacity: 0.6; font-weight: 500; }
-.week-order-arrow { font-size: 11px; color: var(--accent); opacity: 0.6; transition: transform 0.2s; }
-.week-order-card.open .week-order-arrow { transform: rotate(180deg); }
-.week-order-body { display: none; padding: 4px 12px 12px; border-top: 1px solid #FFCC80; }
-.week-order-card.open .week-order-body { display: block; }
-.week-order-card .item-row.checked { background: #FFF8E1; }
-.week-order-card .item-row.checked .item-check { background: var(--accent); border-color: var(--accent); color: white; }
-.week-order-card .item-row .item-name { color: var(--accent); font-weight: 600; }
-.week-order-cat-label {
-  font-size: 11px; font-weight: 700; color: var(--accent);
-  padding: 8px 4px 4px; opacity: 0.8; letter-spacing: 0.3px;
+.week-ingr-title { flex: 1; font-size: 14px; font-weight: 800; color: #6A1B9A; }
+.week-ingr-arrow { font-size: 11px; color: #6A1B9A; opacity: 0.6; transition: transform 0.2s; }
+.week-ingr-card.open .week-ingr-arrow { transform: rotate(180deg); }
+.week-ingr-body { display: none; padding: 4px 12px 12px; border-top: 1px solid #CE93D8; }
+.week-ingr-card.open .week-ingr-body { display: block; }
+.ingr-day-row {
+  padding: 8px 4px;
+  border-bottom: 1px solid #E1BEE7;
 }
+.ingr-day-row:last-child { border-bottom: none; }
+.ingr-day-menu { font-size: 13px; color: var(--dark); line-height: 1.5; margin-bottom: 3px; }
+.ingr-day-dow { font-weight: 800; color: #6A1B9A; margin-right: 4px; }
+.ingr-list { font-size: 12px; color: var(--gray4); padding-left: 14px; line-height: 1.5; }
+.ingr-list::before { content: 'ㄴ '; color: #9C27B0; font-weight: 700; }
+.ingr-empty { color: var(--gray3); font-style: italic; }
 
 /* ── 식단표 분석 카드 ── */
 .analyze-card {
@@ -751,28 +752,6 @@ const EXTRA_CATEGORIES = [
     items: ["간장","고추장","깻잎","들기름","된장","소금","설탕","식용유","참기름","토마토소스"],
   },
 ];
-const FRIDAY_ORDER_CATEGORIES = [
-  {
-    label: "🌾 곡류",
-    items: [
-      { name: "기장쌀",   unit: "kg", defaultQty: 1 },
-      { name: "쌀",       unit: "kg", defaultQty: 1 },
-      { name: "찰차조쌀", unit: "kg", defaultQty: 1 },
-    ],
-  },
-  {
-    label: "🧂 양념",
-    items: [
-      { name: "간장",   unit: "병", defaultQty: 1 },
-      { name: "고추장", unit: "통", defaultQty: 1 },
-      { name: "된장",   unit: "통", defaultQty: 1 },
-      { name: "맛술",   unit: "병", defaultQty: 1 },
-      { name: "설탕",   unit: "봉", defaultQty: 1 },
-      { name: "소금",   unit: "봉", defaultQty: 1 },
-      { name: "식용유", unit: "병", defaultQty: 1 },
-    ],
-  },
-];
 const UNIT_OPTIONS = ["개","kg","g","봉","단","통","병","팩","장","판","마리","포","컵"];
 const UNIT_MAP = {
   "계란":"판","달걀":"판","우유":"개","치즈":"장","쌀":"kg","찹쌀":"kg",
@@ -790,8 +769,6 @@ let startDates = { 1: null, 2: null };
 let weekFixed = {};
 // 날짜별 추가재료만: { "2026-03-03": { extra: [...] } }
 let dayData = {};
-// 주차별 추가주문(금요일): { 1: [{items:[...]}, ...], 2: [...] }
-let weekOrder = {};
 const WEEKDAYS = ["일","월","화","수","목","금","토"];
 
 // ── 카카오 SDK 초기화 ──────────────────────────────────
@@ -927,83 +904,6 @@ function refreshWeekFixed(week) {
   updateBadge();
 }
 
-// ── 추가주문 (금요일 주문, 주차 단위) ─────────────────
-function getOrInitWeekOrder(week) {
-  if (!weekOrder[week]) {
-    weekOrder[week] = FRIDAY_ORDER_CATEGORIES.map(cat => ({
-      items: cat.items.map(item => ({ ...item, checked: false, qty: item.defaultQty })),
-    }));
-  }
-  return weekOrder[week];
-}
-function buildWeekOrderCard(week) {
-  const order = getOrInitWeekOrder(week);
-  const dates = getWeekDates(week);
-  const fridayStr = dates.length >= 5 ? `금요일: ${formatDate(dates[4]).full}` : '';
-  const card = document.createElement('div');
-  card.className = 'week-order-card';
-  card.id = `wo-card-${week}`;
-  let bodyHtml = '';
-  order.forEach((cat, catIdx) => {
-    const catDef = FRIDAY_ORDER_CATEGORIES[catIdx];
-    bodyHtml += `<div class="week-order-cat-label">${catDef.label}</div>`;
-    cat.items.forEach((item, itemIdx) => { bodyHtml += buildWeekOrderRow(week, catIdx, itemIdx, item); });
-  });
-  card.innerHTML = `
-    <div class="week-order-header" onclick="toggleWeekOrderCard(${week})">
-      <div class="week-order-title">📦 추가주문 (금요일 주문)</div>
-      <div class="week-order-period">${fridayStr}</div>
-      <div class="week-order-arrow">▼</div>
-    </div>
-    <div class="week-order-body" id="wob-${week}">${bodyHtml}</div>
-  `;
-  return card;
-}
-function buildWeekOrderRow(week, catIdx, itemIdx, item) {
-  return `
-    <div class="item-row ${item.checked ? 'checked' : ''}" id="worow-${week}-${catIdx}-${itemIdx}">
-      <div class="item-check" onclick="toggleWeekOrder(${week},${catIdx},${itemIdx})">✓</div>
-      <div class="item-name">${item.name}</div>
-      <div class="qty-wrap">
-        <button class="qty-btn" onclick="changeWeekOrderQty(${week},${catIdx},${itemIdx},-1)">−</button>
-        <input class="qty-input" type="number" min="0.5" step="0.5"
-               value="${item.qty}"
-               onchange="setWeekOrderQty(${week},${catIdx},${itemIdx},this.value)"
-               onclick="this.select()">
-        <button class="qty-btn" onclick="changeWeekOrderQty(${week},${catIdx},${itemIdx},1)">＋</button>
-      </div>
-      <div class="item-unit">${item.unit}</div>
-    </div>
-  `;
-}
-function toggleWeekOrderCard(week) {
-  document.getElementById(`wo-card-${week}`).classList.toggle('open');
-}
-function toggleWeekOrder(week, catIdx, itemIdx) {
-  getOrInitWeekOrder(week)[catIdx].items[itemIdx].checked ^= true;
-  refreshWeekOrder(week);
-}
-function changeWeekOrderQty(week, catIdx, itemIdx, delta) {
-  const item = getOrInitWeekOrder(week)[catIdx].items[itemIdx];
-  item.qty = Math.max(0.5, parseFloat((item.qty + delta).toFixed(1)));
-  const input = document.querySelector(`#worow-${week}-${catIdx}-${itemIdx} .qty-input`);
-  if (input) input.value = item.qty;
-}
-function setWeekOrderQty(week, catIdx, itemIdx, val) {
-  getOrInitWeekOrder(week)[catIdx].items[itemIdx].qty = Math.max(0.5, parseFloat(val) || 0.5);
-}
-function refreshWeekOrder(week) {
-  const order = getOrInitWeekOrder(week);
-  order.forEach((cat, catIdx) => {
-    cat.items.forEach((item, itemIdx) => {
-      const row = document.getElementById(`worow-${week}-${catIdx}-${itemIdx}`);
-      if (!row) return;
-      row.className = `item-row ${item.checked ? 'checked' : ''}`;
-    });
-  });
-  updateBadge();
-}
-
 // ── 추가재료 (날짜 단위) ──────────────────────────────
 function getOrInitDay(dateStr) {
   if (!dayData[dateStr]) dayData[dateStr] = { extra: [] };
@@ -1021,8 +921,8 @@ function render() {
     updateBadge(); return;
   }
   main.appendChild(buildWeekFixedCard(currentWeek));
-  main.appendChild(buildWeekOrderCard(currentWeek));
   main.appendChild(buildWeekMealPlanCard(currentWeek));
+  main.appendChild(buildWeekIngredientsCard(currentWeek));
   dates.forEach(dateStr => main.appendChild(buildDayCard(dateStr)));
   updateBadge();
 }
@@ -1059,6 +959,48 @@ function toggleWeekMealCard(week) {
 function saveMealMenu(dateStr, el) {
   const text = el.innerText.trim();
   getOrInitDay(dateStr).menu = text ? text.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const week = [1, 2].find(w => getWeekDates(w).includes(dateStr));
+  if (week) refreshIngrCard(week);
+}
+
+function buildWeekIngredientsCard(week) {
+  const card = document.createElement('div');
+  card.className = 'week-ingr-card open';
+  card.id = `wi-card-${week}`;
+  card.innerHTML = `
+    <div class="week-ingr-header" onclick="toggleWeekIngrCard(${week})">
+      <div class="week-ingr-title">🛒 이번주 식재료 현황</div>
+      <div class="week-ingr-arrow">▼</div>
+    </div>
+    <div class="week-ingr-body" id="wib-${week}">${buildIngrRows(week)}</div>`;
+  return card;
+}
+function buildIngrRows(week) {
+  const dates = getWeekDates(week);
+  return dates.map(dateStr => {
+    const { dow, full } = formatDate(dateStr);
+    const data = dayData[dateStr] || {};
+    const menuArr = Array.isArray(data.menu) ? data.menu : [];
+    const menuText = menuArr.length > 0 ? menuArr.join(', ') : '';
+    const ingredients = Array.isArray(data.extra) ? data.extra.map(e => e.name) : [];
+    return `
+      <div class="ingr-day-row">
+        <div class="ingr-day-menu">
+          <span class="ingr-day-dow">${dow}(${full})</span>${menuText ? ' ' + escHtml(menuText) : '<span class="ingr-empty"> 식단 없음</span>'}
+        </div>
+        ${ingredients.length > 0
+          ? `<div class="ingr-list">${escHtml(ingredients.join(', '))}</div>`
+          : `<div class="ingr-list ingr-empty">식재료 없음</div>`
+        }
+      </div>`;
+  }).join('');
+}
+function toggleWeekIngrCard(week) {
+  document.getElementById(`wi-card-${week}`).classList.toggle('open');
+}
+function refreshIngrCard(week) {
+  const body = document.getElementById(`wib-${week}`);
+  if (body) body.innerHTML = buildIngrRows(week);
 }
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1249,6 +1191,8 @@ function refreshDayCard(dateStr) {
   if (countEl) countEl.textContent = `${extraCount}개`;
   const body = document.getElementById(`body-${dateStr}`);
   if (body) body.innerHTML = buildDayBody(dateStr, data);
+  const week = [1, 2].find(w => getWeekDates(w).includes(dateStr));
+  if (week) refreshIngrCard(week);
   updateBadge();
 }
 
@@ -1257,8 +1201,6 @@ function updateBadge() {
   [1, 2].forEach(w => {
     const fixed = weekFixed[w];
     if (fixed) total += fixed.filter(i => i.checked).length;
-    const order = weekOrder[w];
-    if (order) order.forEach(cat => { total += cat.items.filter(i => i.checked).length; });
     getWeekDates(w).forEach(d => {
       const data = dayData[d];
       if (data) total += data.extra.filter(i => i.checked).length;
@@ -1285,20 +1227,6 @@ function openPreview() {
           <span class="pqty">${i.qty}${i.unit}</span>
         </div>`).join('')}
       </div>`;
-    }
-    const order = weekOrder[w];
-    if (order) {
-      const orderItems = order.flatMap(cat => cat.items.filter(i => i.checked));
-      if (orderItems.length > 0) {
-        hasAny = true;
-        weekHtml += `<div class="preview-day">
-          <div class="preview-day-header">📦 추가주문 (금요일)</div>
-          ${orderItems.map(i => `<div class="preview-item">
-            <span class="pname">${i.name}</span>
-            <span class="pqty">${i.qty}${i.unit}</span>
-          </div>`).join('')}
-        </div>`;
-      }
     }
     getWeekDates(w).forEach(dateStr => {
       const data = dayData[dateStr];
@@ -1339,18 +1267,12 @@ function buildText() {
     const fixed = weekFixed[w];
     const fixedItems = fixed ? fixed.filter(i => i.checked) : [];
     const dates = getWeekDates(w);
-    const order = weekOrder[w];
-    const orderItems = order ? order.flatMap(cat => cat.items.filter(i => i.checked)) : [];
     const hasExtra = dates.some(d => { const dd = dayData[d]; return dd && dd.extra.some(i => i.checked); });
-    if (fixedItems.length === 0 && orderItems.length === 0 && !hasExtra) return;
+    if (fixedItems.length === 0 && !hasExtra) return;
     text += `\n▶ ${w}주차\n`;
     if (fixedItems.length > 0) {
       text += `\n📌 고정 재료\n`;
       fixedItems.forEach(i => { text += `  · ${i.name} ${i.qty}${i.unit}\n`; });
-    }
-    if (orderItems.length > 0) {
-      text += `\n📦 추가주문 (금요일)\n`;
-      orderItems.forEach(i => { text += `  · ${i.name} ${i.qty}${i.unit}\n`; });
     }
     dates.forEach(dateStr => {
       const data = dayData[dateStr];
@@ -1370,18 +1292,16 @@ function buildText() {
 // 체크된 항목만, 단축 키(n/u/q)로 인코딩해 URL 크기를 최소화 (모바일 10K 제한 대응)
 function buildViewUrl() {
   const cmpr = (items) => (items || []).filter(i => i.checked).map(i => `${i.name}|${i.unit}|${i.qty}`);
-  const vwf = {}, vwo = {}, vdd = {};
+  const vwf = {}, vdd = {};
   [1, 2].forEach(w => {
     const f = cmpr(weekFixed[w]);
     if (f.length) vwf[w] = f;
-    const o = (weekOrder[w] || []).flatMap(cat => cmpr(cat.items));
-    if (o.length) vwo[w] = o;
   });
   Object.entries(dayData).forEach(([date, data]) => {
     const e = cmpr(data.extra);
     if (e.length) vdd[date] = e;
   });
-  const payload = { sd: startDates, wf: vwf, wo: vwo, dd: vdd };
+  const payload = { sd: startDates, wf: vwf, dd: vdd };
   return `${APP_URL}?v=${btoa(unescape(encodeURIComponent(JSON.stringify(payload))))}`;
 }
 
@@ -1404,7 +1324,7 @@ function sendKakao() {
       Kakao.Share.sendDefault({
         objectType: 'text',
         text: preview,
-        link: { mobileWebUrl: viewUrl },
+        link: { mobileWebUrl: viewUrl, webUrl: viewUrl },
         buttonTitle: '📋 발주표 전체 보기',
       });
       closePreviewBtn();
@@ -1461,7 +1381,6 @@ function checkViewMode() {
 function renderViewMode(data) {
   const sd = data.sd || {};
   const wf = data.wf || {};
-  const wo = data.wo || {};
   const dd = data.dd || {};
 
   const getWeekDatesFromSD = (w) => {
@@ -1500,15 +1419,7 @@ function renderViewMode(data) {
       </div>`;
     }).join('');
 
-    const orderItems = (wo[w] || []).map(pi);
-    const orderBlock = orderItems.length > 0 ? `<div class="view-card">
-      <div class="view-card-header" style="background:#FFF3E0;color:#E65100">📦 추가주문 (금요일)</div>
-      ${orderItems.map(i => `<div class="view-item">
-        <span class="view-item-name">${i.n}</span>
-        <span class="view-item-qty" style="color:#E65100">${i.q}${i.u}</span>
-      </div>`).join('')}
-    </div>` : '';
-    if (fixedItems.length === 0 && !orderBlock && !dayBlocks) return;
+    if (fixedItems.length === 0 && !dayBlocks) return;
     weeksHtml += `<div class="view-week-block">
       <div class="view-week-title">${w}주차</div>
       ${fixedItems.length > 0 ? `<div class="view-card view-fixed">
@@ -1518,7 +1429,6 @@ function renderViewMode(data) {
           <span class="view-item-qty">${i.q}${i.u}</span>
         </div>`).join('')}
       </div>` : ''}
-      ${orderBlock}
       ${dayBlocks}
     </div>`;
   });
