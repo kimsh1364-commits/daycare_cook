@@ -1181,9 +1181,12 @@ function updateBadge() {
 }
 
 // ── 미리보기 ───────────────────────────────────────────
-function openPreview() {
+let _pendingShareUrl = null;
+
+async function openPreview() {
   const body = document.getElementById('preview-body');
   body.innerHTML = '';
+  _pendingShareUrl = null;
   let hasAny = false;
   [1, 2].forEach(w => {
     let weekHtml = '';
@@ -1220,6 +1223,18 @@ function openPreview() {
     body.innerHTML = `<div class="preview-empty">아직 선택된 품목이 없어요.<br>날짜를 열어서 재료를 확인해주세요.</div>`;
   }
   document.getElementById('preview-modal').classList.add('open');
+
+  // 백그라운드에서 공유 URL 미리 준비
+  try {
+    const payload = buildViewPayload();
+    fetch('/api/save-share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payload }),
+    }).then(r => r.json()).then(({ id }) => {
+      _pendingShareUrl = `${APP_URL}?share=${id}`;
+    }).catch(() => {});
+  } catch(e) {}
 }
 function closePreview(e) {
   if (e.target.id === 'preview-modal') document.getElementById('preview-modal').classList.remove('open');
@@ -1295,7 +1310,7 @@ function buildViewUrl() {
 }
 
 // ── 카카오톡 전송 ──────────────────────────────────────
-async function sendKakao() {
+function sendKakao() {
   const hasContent = [1,2].some(w => {
     const f = weekFixed[w];
     if (f && f.some(i => i.checked)) return true;
@@ -1310,15 +1325,8 @@ async function sendKakao() {
   if (typeof Kakao !== 'undefined' && Kakao.isInitialized()) {
     const text = buildText();
     const preview = text.length > 200 ? text.substring(0, 197) + '...' : text;
+    const shareUrl = _pendingShareUrl || APP_URL;
     try {
-      const payload = buildViewPayload();
-      const res = await fetch('/api/save-share', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payload }),
-      });
-      const { id } = await res.json();
-      const shareUrl = `${APP_URL}?share=${id}`;
       Kakao.Share.sendDefault({
         objectType: 'text',
         text: preview,
