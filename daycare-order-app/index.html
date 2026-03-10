@@ -1136,7 +1136,8 @@ function applyAnalysisResult(result) {
     if (!validDates.has(day.date)) return;
     applied++;
     const data = getOrInitDay(day.date);
-    data.menu = Array.isArray(day.menu) ? day.menu.map(m => typeof m === 'string' ? m : String(m)) : (day.menu ? String(day.menu).split(',').map(s => s.trim()) : []);
+    const stripCircle = s => s.replace(/^[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮]\s*/, '').trim();
+    data.menu = Array.isArray(day.menu) ? day.menu.map(m => stripCircle(typeof m === 'string' ? m : String(m))) : (day.menu ? String(day.menu).split(',').map(s => stripCircle(s.trim())) : []);
     (day.ingredients || []).forEach(name => {
       if (!data.extra.some(e => e.name === name)) {
         data.extra.push({ name, unit: UNIT_MAP[name] || '개', qty: 1, checked: true });
@@ -1307,12 +1308,11 @@ function sendKakao() {
   if (typeof Kakao !== 'undefined' && Kakao.isInitialized()) {
     const text = buildText();
     const preview = text.length > 200 ? text.substring(0, 197) + '...' : text;
-    const viewUrl = buildViewUrl();
     try {
       Kakao.Share.sendDefault({
         objectType: 'text',
         text: preview,
-        link: { mobileWebUrl: viewUrl, webUrl: APP_URL },
+        link: { mobileWebUrl: APP_URL, webUrl: APP_URL },
         buttonTitle: '📋 발주표 전체 보기',
       });
       closePreviewBtn();
