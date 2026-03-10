@@ -718,6 +718,7 @@ body {
 <div class="toast" id="toast"></div>
 
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
 <script>
 // ── 카카오 설정 ─────────────────────────────────────────
 const KAKAO_APP_KEY = '5cc2dc2a0fd04d0476389c192a24dd3a';
@@ -1270,7 +1271,11 @@ function buildViewUrl() {
     if (e.length) vdd[date] = e;
   });
   const payload = { sd: startDates, wf: vwf, dd: vdd };
-  return `${APP_URL}?v=${btoa(unescape(encodeURIComponent(JSON.stringify(payload))))}`;
+  const json = JSON.stringify(payload);
+  const compressed = (typeof LZString !== 'undefined')
+    ? LZString.compressToEncodedURIComponent(json)
+    : btoa(unescape(encodeURIComponent(json)));
+  return `${APP_URL}?v=${compressed}`;
 }
 
 // ── 카카오톡 전송 ──────────────────────────────────────
@@ -1290,7 +1295,7 @@ function sendKakao() {
       Kakao.Share.sendDefault({
         objectType: 'text',
         text: preview,
-        link: { mobileWebUrl: viewUrl, webUrl: viewUrl },
+        link: { mobileWebUrl: viewUrl, webUrl: APP_URL },
         buttonTitle: '📋 발주표 전체 보기',
       });
       closePreviewBtn();
@@ -1336,7 +1341,13 @@ function checkViewMode() {
   const param = new URLSearchParams(window.location.search).get('v');
   if (!param) return false;
   try {
-    const data = JSON.parse(decodeURIComponent(escape(atob(param))));
+    let json;
+    // LZString 압축 시도, 실패 시 구버전 base64로 폴백
+    if (typeof LZString !== 'undefined') {
+      json = LZString.decompressFromEncodedURIComponent(param);
+    }
+    if (!json) json = decodeURIComponent(escape(atob(param)));
+    const data = JSON.parse(json);
     renderViewMode(data);
     return true;
   } catch(e) {
