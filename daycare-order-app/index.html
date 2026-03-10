@@ -945,7 +945,7 @@ function buildWeekMealPlanCard(week) {
   card.id = `wm-card-${week}`;
   const rowsHtml = dates.map(dateStr => {
     const { dow, full } = formatDate(dateStr);
-    const data = dayData[dateStr] || {};
+    const data = getOrInitDay(dateStr);
     const menuArr = Array.isArray(data.menu) ? data.menu : [];
     const menu = menuArr.join(', ');
     return `
