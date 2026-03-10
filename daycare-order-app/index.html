@@ -165,13 +165,14 @@ body {
   flex: 1;
   font-size: 13px;
   color: var(--dark);
-  line-height: 1.6;
+  line-height: 1.5;
   min-height: 24px;
   outline: none;
   border-radius: 6px;
   padding: 2px 6px;
   cursor: text;
   word-break: keep-all;
+  min-width: 0;
 }
 .meal-plan-menu:empty::before { content: attr(placeholder); color: var(--gray3); }
 .meal-plan-menu:focus { background: white; box-shadow: 0 0 0 2px #FFD54F; border-radius: 6px; }
@@ -483,34 +484,46 @@ body {
 }
 .item-delete:active { background: #FFE0E0; color: #C62828; }
 
-/* ── 식재료 현황 카드 ── */
-.week-ingr-card {
-  background: #F3E5F5;
-  border-radius: var(--radius-lg);
-  margin-bottom: 14px;
-  box-shadow: var(--shadow-sm);
-  border: 1.5px solid #CE93D8;
-  overflow: hidden;
+/* ── 식단 카드 내 날짜별 아이템 ── */
+.meal-day-item {
+  border-bottom: 1px solid #FFE082;
 }
-.week-ingr-header {
-  display: flex; align-items: center;
-  padding: 13px 16px; cursor: pointer; gap: 8px; user-select: none;
-}
-.week-ingr-title { flex: 1; font-size: 14px; font-weight: 800; color: #6A1B9A; }
-.week-ingr-arrow { font-size: 11px; color: #6A1B9A; opacity: 0.6; transition: transform 0.2s; }
-.week-ingr-card.open .week-ingr-arrow { transform: rotate(180deg); }
-.week-ingr-body { display: none; padding: 4px 12px 12px; border-top: 1px solid #CE93D8; }
-.week-ingr-card.open .week-ingr-body { display: block; }
-.ingr-day-row {
+.meal-day-item:last-child { border-bottom: none; }
+.meal-day-header {
+  display: flex;
+  align-items: center;
   padding: 8px 4px;
-  border-bottom: 1px solid #E1BEE7;
+  gap: 8px;
+  cursor: default;
 }
-.ingr-day-row:last-child { border-bottom: none; }
-.ingr-day-menu { font-size: 13px; color: var(--dark); line-height: 1.5; margin-bottom: 3px; }
-.ingr-day-dow { font-weight: 800; color: #6A1B9A; margin-right: 4px; }
-.ingr-list { font-size: 12px; color: var(--gray4); padding-left: 14px; line-height: 1.5; }
-.ingr-list::before { content: 'ㄴ '; color: #9C27B0; font-weight: 700; }
-.ingr-empty { color: var(--gray3); font-style: italic; }
+.meal-day-meta {
+  font-size: 13px;
+  font-weight: 800;
+  color: #E65100;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.meal-day-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  cursor: pointer;
+  flex-shrink: 0;
+  color: #E65100;
+  font-size: 11px;
+  opacity: 0.6;
+  transition: transform 0.2s;
+  border-radius: 50%;
+  border: none;
+  background: none;
+}
+.meal-day-item.open .meal-day-toggle { transform: rotate(180deg); }
+.meal-day-body {
+  display: none;
+  padding: 0 4px 10px;
+}
+.meal-day-item.open .meal-day-body { display: block; }
 
 /* ── 식단표 분석 카드 ── */
 .analyze-card {
@@ -922,8 +935,6 @@ function render() {
   }
   main.appendChild(buildWeekFixedCard(currentWeek));
   main.appendChild(buildWeekMealPlanCard(currentWeek));
-  main.appendChild(buildWeekIngredientsCard(currentWeek));
-  dates.forEach(dateStr => main.appendChild(buildDayCard(dateStr)));
   updateBadge();
 }
 
@@ -933,16 +944,20 @@ function buildWeekMealPlanCard(week) {
   card.className = 'week-meal-card open';
   card.id = `wm-card-${week}`;
   const rowsHtml = dates.map(dateStr => {
-    const { dow } = formatDate(dateStr);
+    const { dow, full } = formatDate(dateStr);
     const data = dayData[dateStr] || {};
     const menuArr = Array.isArray(data.menu) ? data.menu : [];
     const menu = menuArr.join(', ');
     return `
-      <div class="meal-plan-row">
-        <div class="meal-plan-dow">${dow}</div>
-        <div class="meal-plan-menu" id="mpm-${dateStr}" contenteditable="true"
-             placeholder="메뉴 입력..."
-             onblur="saveMealMenu('${dateStr}', this)">${escHtml(menu)}</div>
+      <div class="meal-day-item" id="mditem-${dateStr}">
+        <div class="meal-day-header">
+          <div class="meal-day-meta">${dow}(${full})</div>
+          <div class="meal-plan-menu" id="mpm-${dateStr}" contenteditable="true"
+               placeholder="메뉴 입력..."
+               onblur="saveMealMenu('${dateStr}', this)">${escHtml(menu)}</div>
+          <button class="meal-day-toggle" onclick="toggleMealDay('${dateStr}')">▼</button>
+        </div>
+        <div class="meal-day-body" id="mdbody-${dateStr}">${buildDayBody(dateStr, data)}</div>
       </div>`;
   }).join('');
   card.innerHTML = `
@@ -956,51 +971,12 @@ function buildWeekMealPlanCard(week) {
 function toggleWeekMealCard(week) {
   document.getElementById(`wm-card-${week}`).classList.toggle('open');
 }
+function toggleMealDay(dateStr) {
+  document.getElementById(`mditem-${dateStr}`).classList.toggle('open');
+}
 function saveMealMenu(dateStr, el) {
   const text = el.innerText.trim();
   getOrInitDay(dateStr).menu = text ? text.split(',').map(s => s.trim()).filter(Boolean) : [];
-  const week = [1, 2].find(w => getWeekDates(w).includes(dateStr));
-  if (week) refreshIngrCard(week);
-}
-
-function buildWeekIngredientsCard(week) {
-  const card = document.createElement('div');
-  card.className = 'week-ingr-card open';
-  card.id = `wi-card-${week}`;
-  card.innerHTML = `
-    <div class="week-ingr-header" onclick="toggleWeekIngrCard(${week})">
-      <div class="week-ingr-title">🛒 이번주 식재료 현황</div>
-      <div class="week-ingr-arrow">▼</div>
-    </div>
-    <div class="week-ingr-body" id="wib-${week}">${buildIngrRows(week)}</div>`;
-  return card;
-}
-function buildIngrRows(week) {
-  const dates = getWeekDates(week);
-  return dates.map(dateStr => {
-    const { dow, full } = formatDate(dateStr);
-    const data = dayData[dateStr] || {};
-    const menuArr = Array.isArray(data.menu) ? data.menu : [];
-    const menuText = menuArr.length > 0 ? menuArr.join(', ') : '';
-    const ingredients = Array.isArray(data.extra) ? data.extra.map(e => e.name) : [];
-    return `
-      <div class="ingr-day-row">
-        <div class="ingr-day-menu">
-          <span class="ingr-day-dow">${dow}(${full})</span>${menuText ? ' ' + escHtml(menuText) : '<span class="ingr-empty"> 식단 없음</span>'}
-        </div>
-        ${ingredients.length > 0
-          ? `<div class="ingr-list">${escHtml(ingredients.join(', '))}</div>`
-          : `<div class="ingr-list ingr-empty">식재료 없음</div>`
-        }
-      </div>`;
-  }).join('');
-}
-function toggleWeekIngrCard(week) {
-  document.getElementById(`wi-card-${week}`).classList.toggle('open');
-}
-function refreshIngrCard(week) {
-  const body = document.getElementById(`wib-${week}`);
-  if (body) body.innerHTML = buildIngrRows(week);
 }
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1183,16 +1159,8 @@ function addCustomItem(dateStr) {
 
 function refreshDayCard(dateStr) {
   const data = getOrInitDay(dateStr);
-  const card = document.getElementById(`card-${dateStr}`);
-  const wasOpen = card.classList.contains('open');
-  const extraCount = data.extra.filter(i => i.checked).length;
-  card.className = `day-card ${extraCount > 0 ? 'has-items' : ''} ${wasOpen ? 'open' : ''}`;
-  const countEl = card.querySelector('.day-count');
-  if (countEl) countEl.textContent = `${extraCount}개`;
-  const body = document.getElementById(`body-${dateStr}`);
+  const body = document.getElementById(`mdbody-${dateStr}`);
   if (body) body.innerHTML = buildDayBody(dateStr, data);
-  const week = [1, 2].find(w => getWeekDates(w).includes(dateStr));
-  if (week) refreshIngrCard(week);
   updateBadge();
 }
 
@@ -1310,8 +1278,6 @@ function sendKakao() {
   const hasContent = [1,2].some(w => {
     const f = weekFixed[w];
     if (f && f.some(i => i.checked)) return true;
-    const o = weekOrder[w];
-    if (o && o.some(cat => cat.items.some(i => i.checked))) return true;
     return getWeekDates(w).some(d => { const dd = dayData[d]; return dd && dd.extra.some(i => i.checked); });
   });
   if (!hasContent) { showToast('입력된 품목이 없어요'); return; }
@@ -1466,7 +1432,6 @@ function switchWeek(week, btn) {
 function confirmReset() {
   if (!confirm('이번 주차 입력 내용을 초기화할까요?')) return;
   delete weekFixed[currentWeek];
-  delete weekOrder[currentWeek];
   getWeekDates(currentWeek).forEach(d => { delete dayData[d]; });
   render();
   showToast('초기화 완료');
