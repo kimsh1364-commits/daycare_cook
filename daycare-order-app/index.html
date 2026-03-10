@@ -632,6 +632,8 @@ body {
 .view-fixed .view-item-name { color: var(--fixed-color); }
 .view-fixed .view-item-qty { color: var(--fixed-color); }
 .view-empty { text-align: center; padding: 60px 20px; color: var(--gray3); font-size: 14px; }
+.view-menu-row { padding: 8px 12px 4px; font-size: 13px; color: #555; border-bottom: 1px dashed #eee; }
+.view-order-label { padding: 6px 12px 2px; font-size: 12px; font-weight: 700; color: var(--gray3); }
 
 @media print {
   .view-print-btn { display: none; }
@@ -1236,8 +1238,11 @@ function buildText() {
     const fixed = weekFixed[w];
     const fixedItems = fixed ? fixed.filter(i => i.checked) : [];
     const dates = getWeekDates(w);
-    const hasExtra = dates.some(d => { const dd = dayData[d]; return dd && dd.extra.some(i => i.checked); });
-    if (fixedItems.length === 0 && !hasExtra) return;
+    const hasContent = fixedItems.length > 0 || dates.some(d => {
+      const dd = dayData[d];
+      return dd && (dd.extra.some(i => i.checked) || (Array.isArray(dd.menu) && dd.menu.some(m => m.trim())));
+    });
+    if (!hasContent) return;
     text += `\n▶ ${w}주차\n`;
     if (fixedItems.length > 0) {
       text += `\n📌 고정 재료\n`;
@@ -1246,11 +1251,18 @@ function buildText() {
     dates.forEach(dateStr => {
       const data = dayData[dateStr];
       if (!data) return;
+      const menu = Array.isArray(data.menu) ? data.menu.filter(m => m.trim()) : [];
       const extras = data.extra.filter(i => i.checked);
-      if (extras.length === 0) return;
+      if (menu.length === 0 && extras.length === 0) return;
       const { full, dow } = formatDate(dateStr);
       text += `\n📅 ${full}(${dow})\n`;
-      extras.forEach(i => { text += `  · ${i.name} ${i.qty}${i.unit}\n`; });
+      if (menu.length > 0) {
+        text += `🍱 식단: ${menu.join(' / ')}\n`;
+      }
+      if (extras.length > 0) {
+        text += `🛒 발주\n`;
+        extras.forEach(i => { text += `  · ${i.name} ${i.qty}${i.unit}\n`; });
+      }
     });
   });
   text += `\n${'─'.repeat(20)}\n이상입니다.`;
@@ -1268,7 +1280,8 @@ function buildViewUrl() {
   });
   Object.entries(dayData).forEach(([date, data]) => {
     const e = cmpr(data.extra);
-    if (e.length) vdd[date] = e;
+    const m = Array.isArray(data.menu) ? data.menu.filter(s => s.trim()) : [];
+    if (e.length || m.length) vdd[date] = { e, m };
   });
   const payload = { sd: startDates, wf: vwf, dd: vdd };
   const json = JSON.stringify(payload);
@@ -1283,7 +1296,11 @@ function sendKakao() {
   const hasContent = [1,2].some(w => {
     const f = weekFixed[w];
     if (f && f.some(i => i.checked)) return true;
-    return getWeekDates(w).some(d => { const dd = dayData[d]; return dd && dd.extra.some(i => i.checked); });
+    return getWeekDates(w).some(d => {
+      const dd = dayData[d];
+      if (!dd) return false;
+      return dd.extra.some(i => i.checked) || (Array.isArray(dd.menu) && dd.menu.some(m => m.trim()));
+    });
   });
   if (!hasContent) { showToast('입력된 품목이 없어요'); return; }
 
@@ -1384,11 +1401,15 @@ function renderViewMode(data) {
     const fixedItems = (wf[w] || []).map(pi);
     const dates = getWeekDatesFromSD(w);
     const dayBlocks = dates.map(dateStr => {
-      const extras = (dd[dateStr] || []).map(pi);
-      if (extras.length === 0) return '';
+      const raw = dd[dateStr];
+      const extras = !raw ? [] : Array.isArray(raw) ? raw.map(pi) : (raw.e || []).map(pi);
+      const menu = !raw || Array.isArray(raw) ? [] : (raw.m || []);
+      if (extras.length === 0 && menu.length === 0) return '';
       const { full, dow } = formatD(dateStr);
       return `<div class="view-card">
         <div class="view-card-header day">📅 ${full} (${dow})</div>
+        ${menu.length > 0 ? `<div class="view-menu-row">🍱 ${menu.join(' / ')}</div>` : ''}
+        ${extras.length > 0 ? `<div class="view-order-label">🛒 발주</div>` : ''}
         ${extras.map(i => `<div class="view-item">
           <span class="view-item-name">${i.n}</span>
           <span class="view-item-qty">${i.q}${i.u}</span>
