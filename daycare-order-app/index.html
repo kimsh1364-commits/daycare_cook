@@ -1277,7 +1277,11 @@ function buildViewUrl() {
     const f = cmpr(weekFixed[w]);
     if (f.length) vwf[w] = f;
   });
-  Object.entries(dayData).forEach(([date, data]) => {
+  // 현재 2주치 날짜만 포함 (전체 dayData 사용 시 10KB 초과 가능)
+  const currentDates = [...getWeekDates(1), ...getWeekDates(2)];
+  currentDates.forEach(date => {
+    const data = dayData[date];
+    if (!data) return;
     const e = cmpr(data.extra);
     const m = Array.isArray(data.menu) ? data.menu.filter(s => s.trim()) : [];
     if (e.length || m.length) vdd[date] = { e, m };
