@@ -695,7 +695,7 @@ body {
       <button class="modal-close" onclick="closePreviewBtn()">✕</button>
     </div>
     <div class="preview-body" id="preview-body"></div>
-    <button id="modal-send-btn" class="modal-send-btn" onclick="sendKakao()">💬 카카오톡으로 원장님께 전송</button>
+    <button id="modal-send-btn" class="modal-send-btn" onclick="sendKakao()">📤 원장님께 공유하기</button>
     <button class="modal-copy-btn" onclick="copyText()">📄 텍스트 복사하기</button>
   </div>
 </div>
@@ -1243,7 +1243,7 @@ async function openPreview() {
     _pendingShareUrl = buildViewUrl(); // 서버 실패 시 base64 URL 폴백
   } finally {
     sendBtn.disabled = false;
-    sendBtn.textContent = '💬 카카오톡으로 원장님께 전송';
+    sendBtn.textContent = '📤 원장님께 공유하기';
   }
 }
 function closePreview(e) {
@@ -1322,7 +1322,7 @@ function buildViewUrl() {
   return `${APP_URL}?v=${b64}`;
 }
 
-// ── 카카오톡 전송 ──────────────────────────────────────
+// ── 공유 (네이티브 Share API → 클립보드 폴백) ──────────────
 function sendKakao() {
   const hasContent = [1,2].some(w => {
     const f = weekFixed[w];
@@ -1335,22 +1335,13 @@ function sendKakao() {
   });
   if (!hasContent) { showToast('입력된 품목이 없어요'); return; }
 
-  if (typeof Kakao !== 'undefined' && Kakao.isInitialized()) {
-    const text = buildText();
-    const preview = text.length > 200 ? text.substring(0, 197) + '...' : text;
-    const shareUrl = _pendingShareUrl || APP_URL;
-    try {
-      Kakao.Share.sendDefault({
-        objectType: 'text',
-        text: preview,
-        link: { mobileWebUrl: shareUrl, webUrl: shareUrl },
-        buttonTitle: '📋 발주표 전체 보기',
-      });
-      closePreviewBtn();
-    } catch(e) {
-      console.warn('Kakao Share 실패, 폴백으로 전환:', e);
-      fallbackSend();
-    }
+  const shareUrl = _pendingShareUrl || APP_URL;
+  const text = buildText();
+
+  if (navigator.share) {
+    navigator.share({ title: '식단 발주표', text, url: shareUrl })
+      .then(() => closePreviewBtn())
+      .catch(() => {});
   } else {
     fallbackSend();
   }
