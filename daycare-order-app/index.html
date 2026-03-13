@@ -1336,10 +1336,10 @@ function sendKakao() {
   if (!hasContent) { showToast('입력된 품목이 없어요'); return; }
 
   const shareUrl = _pendingShareUrl || APP_URL;
-  const text = buildText();
 
   if (navigator.share) {
-    navigator.share({ title: '식단 발주표', text, url: shareUrl })
+    // text 제외, url만 공유 → 카카오톡이 링크 카드로 표시 (text 포함 시 텍스트만 보임)
+    navigator.share({ title: '📋 식단 발주표', url: shareUrl })
       .then(() => closePreviewBtn())
       .catch(() => {});
   } else {
