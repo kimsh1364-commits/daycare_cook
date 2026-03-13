@@ -8,12 +8,3 @@
   to = "/.netlify/functions/analyze-menu"
   status = 200
 
-[[redirects]]
-  from = "/api/save-share"
-  to = "/.netlify/functions/save-share"
-  status = 200
-
-[[redirects]]
-  from = "/api/get-share"
-  to = "/.netlify/functions/get-share"
-  status = 200
