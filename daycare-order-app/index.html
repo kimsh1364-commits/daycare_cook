@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>발주표</title>
+<title>🍽️ 식단 발주표</title>
+<meta property="og:title" content="🍽️ 식단 발주표">
+<meta property="og:description" content="주간 식단 및 식재료 발주 내역을 확인하세요.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#1B5E3B">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
 :root {
@@ -643,14 +647,18 @@ body {
   body { background: white; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
-.modal-img-btn {
-  margin: 8px 18px 0;
-  width: calc(100% - 36px);
-  background: var(--primary); color: white;
-  border: none; border-radius: var(--radius-md);
-  padding: 14px; font-family: inherit; font-size: 15px; font-weight: 800; cursor: pointer;
-}
-.modal-img-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.view-table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; }
+.view-table th { background: var(--primary); color: white; padding: 9px 6px; text-align: center; font-size: 11px; font-weight: 700; }
+.view-table td { padding: 8px 6px; border-bottom: 1px solid var(--gray2); border-right: 1px solid var(--gray2); vertical-align: top; }
+.view-table td:last-child { border-right: none; }
+.view-table .col-date { width: 44px; text-align: center; font-weight: 800; color: var(--dark); font-size: 12px; white-space: nowrap; }
+.view-table .col-menu { width: 22%; font-size: 12px; color: #444; line-height: 1.6; }
+.view-table .col-ingr { font-size: 12px; }
+.view-table .ingr-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+.view-table .ingr-name { color: var(--dark); }
+.view-table .ingr-qty { font-weight: 700; color: var(--primary); margin-left: 6px; white-space: nowrap; }
+.view-week-sep td { background: var(--primary-pale); color: var(--primary); font-size: 12px; font-weight: 700; padding: 7px 10px; border-right: none; }
+.view-fixed-row td { background: #F0F7FF; color: var(--fixed-color); font-size: 11px; padding: 6px 8px; }
 </style>
 </head>
 <body>
@@ -706,7 +714,6 @@ body {
     </div>
     <div class="preview-body" id="preview-body"></div>
     <button id="modal-send-btn" class="modal-send-btn" onclick="sendKakao()">🔗 링크로 공유하기</button>
-    <button class="modal-img-btn" onclick="shareAsImage()">🖼️ 이미지로 공유하기</button>
     <button class="modal-copy-btn" onclick="copyText()">📄 텍스트 복사하기</button>
   </div>
 </div>
@@ -1195,7 +1202,7 @@ function updateBadge() {
 // ── 미리보기 ───────────────────────────────────────────
 let _pendingShareUrl = null;
 
-function openPreview() {
+async function openPreview() {
   const body = document.getElementById('preview-body');
   body.innerHTML = '';
   _pendingShareUrl = null;
@@ -1236,9 +1243,10 @@ function openPreview() {
   }
   document.getElementById('preview-modal').classList.add('open');
 
-  // 서버 불필요 — 즉시 URL-safe base64 URL 생성
-  _pendingShareUrl = buildViewUrl();
   const sendBtn = document.getElementById('modal-send-btn');
+  sendBtn.disabled = true;
+  sendBtn.textContent = '⏳ 준비 중...';
+  _pendingShareUrl = await buildViewUrl();
   sendBtn.disabled = false;
   sendBtn.textContent = '🔗 링크로 공유하기';
 }
@@ -1302,15 +1310,27 @@ function buildViewPayload() {
     const data = dayData[date];
     if (!data) return;
     const e = cmpr(data.extra);
-    if (e.length) vdd[date] = e; // 배열로 저장 (메뉴 제외 → URL 단축)
+    const m = Array.isArray(data.menu) ? data.menu.filter(s => s.trim()) : [];
+    if (e.length || m.length) vdd[date] = { e, m };
   });
   return { sd: startDates, wf: vwf, dd: vdd };
 }
 
-function buildViewUrl() {
-  const payload = buildViewPayload();
-  const json = JSON.stringify(payload);
-  // URL-safe base64: +→-, /→_, = 제거 → Kakao 패킷 내 URL-인코딩 팽창 방지
+async function buildViewUrl() {
+  const json = JSON.stringify(buildViewPayload());
+  if (window.CompressionStream) {
+    try {
+      const cs = new CompressionStream('deflate-raw');
+      const writer = cs.writable.getWriter();
+      writer.write(new TextEncoder().encode(json));
+      writer.close();
+      const buf = await new Response(cs.readable).arrayBuffer();
+      const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      return `${APP_URL}?v=${b64}&c=1`;
+    } catch(e) {}
+  }
+  // 폴백: plain base64url
   const b64 = btoa(unescape(encodeURIComponent(json)))
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
   return `${APP_URL}?v=${b64}`;
@@ -1372,22 +1392,39 @@ function fallbackCopy(text) {
 // ── 뷰 모드 (원장님이 링크 열었을 때) ────────────────────
 async function checkViewMode() {
   const params = new URLSearchParams(window.location.search);
-
-  // ?v=<base64url> — URL-safe base64 디코딩
   const vParam = params.get('v');
-  if (vParam) {
-    try {
+  if (!vParam) return false;
+  try {
+    let data;
+    if (params.get('c') === '1' && window.DecompressionStream) {
+      // deflate-raw 압축 해제
+      const binary = atob(vParam.replace(/-/g, '+').replace(/_/g, '/'));
+      const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+      const ds = new DecompressionStream('deflate-raw');
+      const writer = ds.writable.getWriter();
+      writer.write(bytes);
+      writer.close();
+      data = JSON.parse(await new Response(ds.readable).text());
+    } else {
+      // 폴백: plain base64url
       const b64 = vParam.replace(/-/g, '+').replace(/_/g, '/');
       const padded = b64 + '=='.slice(0, (4 - b64.length % 4) % 4);
-      const data = JSON.parse(decodeURIComponent(escape(atob(padded))));
-      renderViewMode(data);
-      return true;
-    } catch(e) {
-      return false;
+      data = JSON.parse(decodeURIComponent(escape(atob(padded))));
     }
-  }
+    renderViewMode(data);
+    return true;
+  } catch(e) { return false; }
+}
 
-  return false;
+function parseMenus(menuArr) {
+  const r = { breakfast: '', lunch: '', snack: '' };
+  (menuArr || []).forEach(m => {
+    const text = m.replace(/^[^:]+:\s*/, '');
+    if (/오전|아침/.test(m)) r.breakfast = text;
+    else if (/중식|점심/.test(m)) r.lunch = text;
+    else if (/오후|저녁/.test(m)) r.snack = text;
+  });
+  return r;
 }
 
 function buildViewHtml(data) {
@@ -1402,54 +1439,64 @@ function buildViewHtml(data) {
   };
   const formatD = (s) => {
     const d = new Date(s + 'T00:00:00');
-    return { full: `${d.getMonth()+1}월 ${d.getDate()}일`, dow: WEEKDAYS[d.getDay()] };
+    return { mo: d.getMonth()+1, da: d.getDate(), dow: WEEKDAYS[d.getDay()] };
   };
 
   let periodStr = '';
   if (sd[1] && sd[2]) {
     const f1 = formatD(sd[1]);
     const f2 = formatD(addDays(sd[2], 4));
-    periodStr = `${f1.full} ~ ${f2.full}`;
+    periodStr = `${f1.mo}월 ${f1.da}일 ~ ${f2.mo}월 ${f2.da}일`;
   }
 
   const pi = (s) => { const p = typeof s === 'string' ? s.split('|') : [s.n||s.name, s.u||s.unit, s.q||s.qty]; return {n: p[0], u: p[1], q: p[2]}; };
 
-  let weeksHtml = '';
+  let tableRows = '';
+  let hasContent = false;
+
   [1, 2].forEach(w => {
     const fixedItems = (wf[w] || []).map(pi);
     const dates = getWeekDatesFromSD(w);
-    const dayBlocks = dates.map(dateStr => {
+    const weekLabel = `${w}주차` + (fixedItems.length > 0 ? `　📌 고정: ${fixedItems.map(i => `${i.n} ${i.q}${i.u}`).join(', ')}` : '');
+    const hasWeekContent = fixedItems.length > 0 || dates.some(d => { const r = dd[d]; return r && ((!Array.isArray(r) && ((r.e||[]).length > 0 || (r.m||[]).length > 0)) || (Array.isArray(r) && r.length > 0)); });
+    if (!hasWeekContent) return;
+    hasContent = true;
+
+    tableRows += `<tr class="view-week-sep"><td colspan="5">${weekLabel}</td></tr>`;
+
+    dates.forEach(dateStr => {
       const raw = dd[dateStr];
       const extras = !raw ? [] : Array.isArray(raw) ? raw.map(pi) : (raw.e || []).map(pi);
-      const menu = !raw || Array.isArray(raw) ? [] : (raw.m || []);
-      if (extras.length === 0 && menu.length === 0) return '';
-      const { full, dow } = formatD(dateStr);
-      return `<div class="view-card">
-        <div class="view-card-header day">📅 ${full} (${dow})</div>
-        ${menu.length > 0 ? `<div class="view-menu-row">🍱 ${menu.join(' / ')}</div>` : ''}
-        ${extras.length > 0 ? `<div class="view-order-label">🛒 발주</div>` : ''}
-        ${extras.map(i => `<div class="view-item">
-          <span class="view-item-name">${i.n}</span>
-          <span class="view-item-qty">${i.q}${i.u}</span>
-        </div>`).join('')}
-      </div>`;
-    }).join('');
+      const menuArr = !raw || Array.isArray(raw) ? [] : (raw.m || []);
+      const menus = parseMenus(menuArr);
+      const { mo, da, dow } = formatD(dateStr);
 
-    if (fixedItems.length === 0 && !dayBlocks) return;
-    weeksHtml += `<div class="view-week-block">
-      <div class="view-week-title">${w}주차</div>
-      ${fixedItems.length > 0 ? `<div class="view-card view-fixed">
-        <div class="view-card-header fixed">📌 고정 재료</div>
-        ${fixedItems.map(i => `<div class="view-item">
-          <span class="view-item-name">${i.n}</span>
-          <span class="view-item-qty">${i.q}${i.u}</span>
-        </div>`).join('')}
-      </div>` : ''}
-      ${dayBlocks}
-    </div>`;
+      const ingrHtml = extras.length > 0
+        ? extras.map(i => `<div class="ingr-row"><span class="ingr-name">${i.n}</span><span class="ingr-qty">${i.q}${i.u}</span></div>`).join('')
+        : '<span style="color:var(--gray3);font-size:11px">-</span>';
+
+      tableRows += `<tr>
+        <td class="col-date">${mo}/${da}<br><span style="color:var(--gray3);font-size:11px">${dow}</span></td>
+        <td class="col-menu">${menus.breakfast || '<span style="color:var(--gray3)">-</span>'}</td>
+        <td class="col-menu">${menus.lunch || '<span style="color:var(--gray3)">-</span>'}</td>
+        <td class="col-menu">${menus.snack || '<span style="color:var(--gray3)">-</span>'}</td>
+        <td class="col-ingr">${ingrHtml}</td>
+      </tr>`;
+    });
   });
 
-  if (!weeksHtml) weeksHtml = `<div class="view-empty">발주 내용이 없습니다.</div>`;
+  const tableHtml = hasContent
+    ? `<table class="view-table">
+        <thead><tr>
+          <th class="col-date">날짜</th>
+          <th class="col-menu">오전간식</th>
+          <th class="col-menu">중식</th>
+          <th class="col-menu">오후간식</th>
+          <th class="col-ingr">식재료</th>
+        </tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>`
+    : `<div class="view-empty">발주 내용이 없습니다.</div>`;
 
   return `
     <div class="view-header">
@@ -1457,7 +1504,7 @@ function buildViewHtml(data) {
       <div class="view-period">${periodStr}</div>
       <button class="view-print-btn" onclick="window.print()">🖨️ 인쇄하기</button>
     </div>
-    <div class="view-body">${weeksHtml}</div>
+    <div class="view-body">${tableHtml}</div>
   `;
 }
 
@@ -1468,69 +1515,6 @@ function renderViewMode(data) {
   document.body.appendChild(overlay);
 }
 
-function renderViewModeInto(container, data) {
-  container.className = 'view-overlay';
-  container.innerHTML = buildViewHtml(data);
-}
-
-async function shareAsImage() {
-  if (!window.html2canvas) {
-    await new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-      s.onload = resolve; s.onerror = reject;
-      document.head.appendChild(s);
-    });
-  }
-
-  const btn = document.querySelector('.modal-img-btn');
-  const origText = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = '⏳ 이미지 생성 중...';
-
-  const container = document.createElement('div');
-  container.style.cssText = 'position:fixed;left:-9999px;top:0;width:390px;';
-  document.body.appendChild(container);
-  renderViewModeInto(container, buildViewPayload());
-  // 렌더링 반영 대기
-  await new Promise(r => setTimeout(r, 100));
-
-  try {
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      height: container.scrollHeight,
-      windowHeight: container.scrollHeight,
-    });
-    document.body.removeChild(container);
-
-    await new Promise((resolve) => {
-      canvas.toBlob(async (blob) => {
-        const file = new File([blob], '식단발주표.png', { type: 'image/png' });
-        try {
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: '식단 발주표' });
-            closePreviewBtn();
-          } else {
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = '식단발주표.png';
-            a.click();
-            showToast('이미지 저장 완료! 카카오톡에서 직접 전송하세요.');
-          }
-        } catch(e) {}
-        resolve();
-      }, 'image/png');
-    });
-  } catch(e) {
-    if (document.body.contains(container)) document.body.removeChild(container);
-    showToast('이미지 생성에 실패했어요. 링크 공유를 이용하세요.');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = origText;
-  }
-}
 
 // ── 날짜 모달 ──────────────────────────────────────────
 function openDateModal() { document.getElementById('date-modal').classList.add('open'); }
