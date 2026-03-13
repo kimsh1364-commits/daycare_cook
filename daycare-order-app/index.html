@@ -713,7 +713,7 @@ body {
       <button class="modal-close" onclick="closePreviewBtn()">✕</button>
     </div>
     <div class="preview-body" id="preview-body"></div>
-    <button id="modal-send-btn" class="modal-send-btn" onclick="sendKakao()">🔗 링크로 공유하기</button>
+    <button id="modal-send-btn" class="modal-send-btn" onclick="sendKakao()">📤 카카오톡으로 공유하기</button>
     <button class="modal-copy-btn" onclick="copyText()">📄 텍스트 복사하기</button>
   </div>
 </div>
@@ -1248,7 +1248,7 @@ async function openPreview() {
   sendBtn.textContent = '⏳ 준비 중...';
   _pendingShareUrl = await buildViewUrl();
   sendBtn.disabled = false;
-  sendBtn.textContent = '🔗 링크로 공유하기';
+  sendBtn.textContent = '📤 카카오톡으로 공유하기';
 }
 function closePreview(e) {
   if (e.target.id === 'preview-modal') document.getElementById('preview-modal').classList.remove('open');
@@ -1336,7 +1336,7 @@ async function buildViewUrl() {
   return `${APP_URL}?v=${b64}`;
 }
 
-// ── 공유 (네이티브 Share API → 클립보드 폴백) ──────────────
+// ── 공유 (Kakao SDK → navigator.share → 클립보드 폴백) ──────────────
 function sendKakao() {
   const hasContent = [1,2].some(w => {
     const f = weekFixed[w];
@@ -1351,8 +1351,26 @@ function sendKakao() {
 
   const shareUrl = _pendingShareUrl || APP_URL;
 
+  // 1순위: Kakao SDK sendDefault (카드 형식 — 식단 내용 + 버튼)
+  if (typeof Kakao !== 'undefined' && Kakao.isInitialized()) {
+    const text = buildText();
+    const preview = text.length > 200 ? text.substring(0, 197) + '...' : text;
+    try {
+      Kakao.Share.sendDefault({
+        objectType: 'text',
+        text: preview,
+        link: { mobileWebUrl: shareUrl, webUrl: shareUrl },
+        buttonTitle: '📋 발주표 전체 보기',
+      });
+      closePreviewBtn();
+      return;
+    } catch(e) {
+      console.warn('Kakao Share 실패, 폴백:', e);
+    }
+  }
+
+  // 2순위: navigator.share (폴백)
   if (navigator.share) {
-    // text 제외, url만 공유 → 카카오톡이 링크 카드로 표시 (text 포함 시 텍스트만 보임)
     navigator.share({ title: '📋 식단 발주표', url: shareUrl })
       .then(() => closePreviewBtn())
       .catch(() => {});
