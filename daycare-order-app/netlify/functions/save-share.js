@@ -20,7 +20,7 @@ exports.handler = async (event) => {
     }
 
     const id = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-    const store = getStore({ name: 'shares', consistency: 'strong' });
+    const store = getStore('shares');
     await store.set(id, JSON.stringify(payload), { metadata: { createdAt: Date.now() } });
 
     return {

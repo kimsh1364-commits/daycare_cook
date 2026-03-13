@@ -19,7 +19,7 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'id required' }) };
     }
 
-    const store = getStore({ name: 'shares', consistency: 'strong' });
+    const store = getStore('shares');
     const data = await store.get(id);
     if (!data) {
       return { statusCode: 404, headers: corsHeaders, body: JSON.stringify({ error: 'not found' }) };

@@ -1237,13 +1237,16 @@ async function openPreview() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ payload }),
     });
-    const { id } = await res.json();
-    _pendingShareUrl = `${APP_URL}?share=${id}`;
-  } catch(e) {
-    _pendingShareUrl = buildViewUrl(); // 서버 실패 시 base64 URL 폴백
-  } finally {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (!json.id) throw new Error('no id');
+    _pendingShareUrl = `${APP_URL}?share=${json.id}`;
     sendBtn.disabled = false;
     sendBtn.textContent = '📤 원장님께 공유하기';
+  } catch(e) {
+    // 서버 저장 실패 → URL 공유 대신 텍스트 복사만 안내
+    sendBtn.disabled = true;
+    sendBtn.textContent = '⚠️ 링크 생성 실패 — 아래 텍스트 복사를 이용하세요';
   }
 }
 function closePreview(e) {
